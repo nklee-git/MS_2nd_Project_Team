@@ -37,18 +37,30 @@ DB_PATH = "nqnq.db"
 # ---------------------------------------------------------------------------
 # 마스터 데이터 정의
 # ---------------------------------------------------------------------------
+# 2026.09 개편([[27. 체형태그·사이즈 확장 개편안 (블랙업 벤치마크)]]):
+#   - "body_tags"는 더 이상 상품을 곱하는 축이 아니라, 하나의 상품에 붙는 체형 추천
+#     스타일링 태그다(product.body_tone_code에 콤마 join으로 저장). TOP/OUT/DRS가 해당.
+#   - PNT는 원래 5LT/PLT를 디자인명과 또 곱하던 버그였어서 이번에 제거(태그도 없음).
+#   - CLR만 예외로 "body_codes"(WRM/COOL/MUT)를 실제 상품 배수 축으로 유지한다 —
+#     톤은 실제로 염색 색상 자체가 달라지는 진짜 제품 차원이라 체형과 다름.
+#   - TOP/PNT는 "core_colors"(전 디자인 공통 뉴트럴) + "point_colors"(HERO 디자인 1개
+#     한정 추가 컬러)로 나뉜다. OUT/DRS/CLR/ACC는 기존처럼 "colors" 단일 리스트 유지.
 CATEGORIES = {
-    "TOP": {"name": "상의", "intro": date(2024, 3, 1), "body_codes": ["STR", "WAV", "NAT"],
-            "sizes": ["S", "M", "L"], "colors": ["BLK", "WHT"], "price": 39000, "return_rate": 0.15},
-    "PNT": {"name": "하의", "intro": date(2024, 3, 1), "body_codes": ["5LT", "PLT"],
-            "sizes": ["XS", "S", "M", "L", "XL"], "colors": ["BLK", "GRY", "BEG"], "price": 49000, "return_rate": 0.20},
+    "TOP": {"name": "상의", "intro": date(2024, 3, 1),
+            "sizes": ["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL"],
+            "core_colors": ["BLK", "WHT", "GRY", "NVY"], "point_colors": ["ORC", "SKB", "LYL"],
+            "body_tags": ["STR", "WAV", "NAT"], "price": 39000, "return_rate": 0.15},
+    "PNT": {"name": "하의", "intro": date(2024, 3, 1),
+            "sizes": ["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL"],
+            "core_colors": ["BLK", "GRY", "BEG"], "point_colors": ["KHK", "NVY"],
+            "body_tags": None, "price": 49000, "return_rate": 0.20},
     "CLR": {"name": "컬러베이직", "intro": date(2024, 3, 1), "body_codes": ["WRM", "COOL", "MUT"],
             "sizes": ["S", "M", "L"], "colors": ["CRM", "ASH", "IVR"], "price": 35000, "return_rate": 0.10},
-    "OUT": {"name": "아우터", "intro": date(2025, 3, 1), "body_codes": ["STR", "WAV", "NAT"],
+    "OUT": {"name": "아우터", "intro": date(2025, 3, 1), "body_tags": ["STR", "WAV", "NAT"],
             "sizes": ["S", "M", "L"], "colors": ["BLK", "BEG", "GRY", "NVY"], "price": 89000, "return_rate": 0.18},
     "ACC": {"name": "액세서리", "intro": date(2026, 3, 1), "body_codes": ["BAG", "BLT", "SCF", "CAP", "PCH"],
             "sizes": ["FREE"], "colors": ["BLK", "BEG", "WHT", "BRN"], "price": 19000, "return_rate": 0.08},
-    "DRS": {"name": "원피스", "intro": date(2026, 3, 1), "body_codes": ["STR", "WAV", "NAT"],
+    "DRS": {"name": "원피스", "intro": date(2026, 3, 1), "body_tags": ["STR", "WAV", "NAT"],
             "sizes": ["S", "M", "L"], "colors": ["BLK", "IVR"], "price": 59000, "return_rate": 0.15},
 }
 
@@ -139,9 +151,16 @@ def category_weather_factor(cat_code: str, temp: float) -> float:
 
 # --- 20대 여성 신장 분포 실측치 (2018 디지틀조선 설문 기반 응답 비율, 사이즈코리아 7차 조사와 정합) ---
 # 155cm미만 7% / 156~160cm 29% / 161~165cm 37% / 166~170cm 23% / 170cm이상 4%
-SIZE_WEIGHTS_5 = {"XS": 0.07, "S": 0.29, "M": 0.37, "L": 0.23, "XL": 0.04}   # PANTS(5단계)
-SIZE_WEIGHTS_3 = {"S": 0.36, "M": 0.37, "L": 0.27}                            # TOP/CLR/OUT/DRS(3단계, XS+S 합산/L+XL 합산)
+SIZE_WEIGHTS_3 = {"S": 0.36, "M": 0.37, "L": 0.27}                            # CLR/OUT/DRS(3단계, XS+S 합산/L+XL 합산)
 SIZE_WEIGHTS_FREE = {"FREE": 1.0}  # ACC
+
+# --- TOP/PNT 신규 8단계(XS~4XL) 배분 — 2026.09 개편, [[27. 체형태그·사이즈 확장 개편안]] 2-4절 ---
+# ⚠️ 위 3단계처럼 실측 출처가 있는 게 아니라 잠정 가정치다. 실제 테스트판매 데이터가
+# 쌓이면 이 값을 실판매 비율로 교체해야 한다(K3 Ratio Curves 기능과 같은 문제).
+SIZE_WEIGHTS_8 = {
+    "XS": 0.04, "S": 0.14, "M": 0.24, "L": 0.24,
+    "XL": 0.16, "2XL": 0.10, "3XL": 0.05, "4XL": 0.03,
+}
 
 # --- 트렌드 캡슐 라인 (2026.08 추가, 21.Core Product Categories 기준) ---
 # 무신사 트렌드 리포트(2025~2026) 반영. 베이직과 달리 한정 판매 후 단종.
@@ -196,23 +215,22 @@ def gen_id(prefix):
     return f"{prefix}-{next(_id_counters[prefix]):09d}"
 
 
+# 2026.09 개편: 카테고리마다 body_codes/colors 구조가 달라져서(TOP·PNT는 core+point
+# 컬러, CLR만 실제 body 배수 유지) 카테고리 메타로 SKU 수를 역산하던 기존 공식이 더 이상
+# 안 맞는다. 실제로 생성된 sku_info/active_from(§2에서 채워짐)에서 직접 세는 방식으로 교체.
 def estimate_aov(d: date) -> int:
-    """해당 시점 활성 카테고리들의 SKU 수 가중평균가 x 평균 아이템수로 AOV 근사."""
-    total_price_weighted, total_skus = 0, 0
-    for meta in CATEGORIES.values():
-        if meta["intro"] <= d:
-            n_skus = len(meta["body_codes"]) * len(meta["sizes"]) * len(meta["colors"])
-            total_price_weighted += meta["price"] * n_skus
-            total_skus += n_skus
-    avg_price = total_price_weighted / total_skus if total_skus else 40000
+    """해당 시점 활성 SKU들의 가중평균가 x 평균 아이템수로 AOV 근사."""
+    total_price, n = 0, 0
+    for sku_code, intro in active_from.items():
+        if intro <= d:
+            total_price += sku_info[sku_code]["price"]
+            n += 1
+    avg_price = total_price / n if n else 40000
     return avg_price * AVG_ITEMS_PER_ORDER
 
 
 def active_sku_count(d: date) -> int:
-    return sum(
-        len(m["body_codes"]) * len(m["sizes"]) * len(m["colors"])
-        for m in CATEGORIES.values() if m["intro"] <= d
-    )
+    return sum(1 for s, intro in active_from.items() if intro <= d) or 1
 
 
 # ---------------------------------------------------------------------------
@@ -275,9 +293,14 @@ DESIGNS_BY_CATEGORY = {
 # ACC는 아이템 종류 자체가 디자인 축 (body_codes로 이미 표현) -> 종류별 티어만 별도 지정
 ACC_TIER = {"BAG": "STEADY", "BLT": "NICHE", "SCF": "NICHE", "CAP": "NICHE", "PCH": "NICHE"}
 
+# 2026.09 개편: 카테고리별로 네이밍 템플릿이 갈린다 —
+#   TOP/PNT: 체형배수 없음, 디자인명 그대로 (예: "스퀘어라인 기본티")
+#   OUT/DRS: 체형배수 없음, 디자인명 그대로 (체형은 태그로만 별도 기록)
+#   CLR: 톤코드가 진짜 색상 축이라 그대로 접두 (예: "WRM 퍼스널컬러 베이직 탑")
+#   ACC: 종류명 + "액세서리" (기존과 동일)
 STYLE_NAME_TEMPLATES = {
-    "TOP": "{body} {design}", "PNT": "{body} {design}", "CLR": "{body} {design}",
-    "OUT": "{body} {design}", "ACC": "{body} 액세서리", "DRS": "{body} {design}",
+    "TOP": "{design}", "PNT": "{design}", "CLR": "{body} {design}",
+    "OUT": "{design}", "ACC": "{body} 액세서리", "DRS": "{design}",
 }
 
 sku_pool = {}          # sku_code -> {available, pending_po}
@@ -285,6 +308,19 @@ sku_info = {}          # sku_code -> {price, cost, category, line_type}
 active_from = {}       # sku_code -> intro date
 discontinue_at = {}    # sku_code -> discontinue date (BASIC은 None)
 product_rows, sku_rows = [], []
+
+
+def _make_sku_rows(product_id, cat_code, price, cost, sizes, colors, tier, intro, season_label_unused=None):
+    for size in sizes:
+        for color in colors:
+            sku_code = f"{product_id}-{size}-{color}"
+            sku_rows.append((sku_code, product_id, size, color, price, cost))
+            sku_pool[sku_code] = {"available": 0, "pending_po": False}
+            sku_info[sku_code] = {"price": price, "cost": cost, "category": cat_code,
+                                   "line_type": "BASIC", "size": size, "tier": tier}
+            active_from[sku_code] = intro
+            discontinue_at[sku_code] = None
+
 
 for cat_code, meta in CATEGORIES.items():
     season_label = ("Y1SS" if meta["intro"] == date(2024, 3, 1) else
@@ -294,7 +330,7 @@ for cat_code, meta in CATEGORIES.items():
     seq = 0
 
     if cat_code == "ACC":
-        # ACC는 종류(body_code) 자체가 디자인 축
+        # ACC는 종류(body_code) 자체가 디자인 축 -- 2026.09 개편 대상 아님, 기존과 동일
         for body in meta["body_codes"]:
             seq += 1
             product_id = f"NQ-{cat_code}-{body}-{seq:03d}"
@@ -303,16 +339,10 @@ for cat_code, meta in CATEGORIES.items():
                 product_id, cat_code, STYLE_NAME_TEMPLATES[cat_code].format(body=body),
                 body, season_label, "판매중", "BASIC", tier, meta["intro"].isoformat(),
             ))
-            for size in meta["sizes"]:
-                for color in meta["colors"]:
-                    sku_code = f"{product_id}-{size}-{color}"
-                    sku_rows.append((sku_code, product_id, size, color, price, cost))
-                    sku_pool[sku_code] = {"available": 0, "pending_po": False}
-                    sku_info[sku_code] = {"price": price, "cost": cost, "category": cat_code,
-                                           "line_type": "BASIC", "size": size, "tier": tier}
-                    active_from[sku_code] = meta["intro"]
-                    discontinue_at[sku_code] = None
-    else:
+            _make_sku_rows(product_id, cat_code, price, cost, meta["sizes"], meta["colors"], tier, meta["intro"])
+
+    elif cat_code == "CLR":
+        # CLR은 톤코드(WRM/COOL/MUT)가 실제 색상 축이라 기존처럼 상품을 톤별로 만든다
         for design, tier in DESIGNS_BY_CATEGORY[cat_code]:
             for body in meta["body_codes"]:
                 seq += 1
@@ -321,15 +351,34 @@ for cat_code, meta in CATEGORIES.items():
                     product_id, cat_code, STYLE_NAME_TEMPLATES[cat_code].format(body=body, design=design),
                     body, season_label, "판매중", "BASIC", tier, meta["intro"].isoformat(),
                 ))
-                for size in meta["sizes"]:
-                    for color in meta["colors"]:
-                        sku_code = f"{product_id}-{size}-{color}"
-                        sku_rows.append((sku_code, product_id, size, color, price, cost))
-                        sku_pool[sku_code] = {"available": 0, "pending_po": False}
-                        sku_info[sku_code] = {"price": price, "cost": cost, "category": cat_code,
-                                               "line_type": "BASIC", "size": size, "tier": tier}
-                        active_from[sku_code] = meta["intro"]
-                        discontinue_at[sku_code] = None
+                _make_sku_rows(product_id, cat_code, price, cost, meta["sizes"], meta["colors"], tier, meta["intro"])
+
+    elif cat_code in ("TOP", "PNT"):
+        # 체형배수 제거 + 코어/포인트 컬러 규칙. body_tone_code 컬럼엔 체형 추천 태그를
+        # 콤마 join으로 기록(TOP만 해당 -- PNT는 체형 개념이 없어 "-").
+        body_tag_str = ",".join(meta["body_tags"]) if meta.get("body_tags") else "-"
+        for design, tier in DESIGNS_BY_CATEGORY[cat_code]:
+            seq += 1
+            product_id = f"NQ-{cat_code}-{seq:03d}"
+            product_rows.append((
+                product_id, cat_code, STYLE_NAME_TEMPLATES[cat_code].format(design=design),
+                body_tag_str, season_label, "판매중", "BASIC", tier, meta["intro"].isoformat(),
+            ))
+            colors = meta["core_colors"] + meta["point_colors"] if tier == "HERO" else meta["core_colors"]
+            _make_sku_rows(product_id, cat_code, price, cost, meta["sizes"], colors, tier, meta["intro"])
+
+    else:
+        # OUT/DRS: 체형배수 제거, 컬러/사이즈는 기존과 동일. body_tone_code엔 체형
+        # 추천 태그만 기록(상품을 곱하는 데는 안 씀).
+        body_tag_str = ",".join(meta["body_tags"]) if meta.get("body_tags") else "-"
+        for design, tier in DESIGNS_BY_CATEGORY[cat_code]:
+            seq += 1
+            product_id = f"NQ-{cat_code}-{seq:03d}"
+            product_rows.append((
+                product_id, cat_code, STYLE_NAME_TEMPLATES[cat_code].format(design=design),
+                body_tag_str, season_label, "판매중", "BASIC", tier, meta["intro"].isoformat(),
+            ))
+            _make_sku_rows(product_id, cat_code, price, cost, meta["sizes"], meta["colors"], tier, meta["intro"])
 
 # 트렌드 캡슐 SKU 생성 (21. Core Product Categories 트렌드 캡슐 라인 참고)
 for cap in TREND_CAPSULES:
@@ -523,7 +572,7 @@ while d <= TODAY:
         for s in active_skus:
             info = sku_info[s]
             w_cat = category_weather_factor(info["category"], temp_today)
-            size_map = (SIZE_WEIGHTS_5 if info["category"] == "PNT" else
+            size_map = (SIZE_WEIGHTS_8 if info["category"] in ("TOP", "PNT") else
                         SIZE_WEIGHTS_FREE if info["category"] == "ACC" else SIZE_WEIGHTS_3)
             w_size = size_map.get(info["size"], 1.0)
             w_tier = TIER_WEIGHT.get(info.get("tier", "STEADY"), 1.0)

@@ -41,7 +41,7 @@ class Product(Base):
     product_id = Column(String, primary_key=True)
     category_code = Column(String, ForeignKey("category.category_code"), nullable=False)
     style_name = Column(String, nullable=False)
-    body_tone_code = Column(String, nullable=False)     # STR/WAV/NAT, 5LT/PLT, WRM/COOL/MUT ...
+    body_tone_code = Column(String, nullable=False)     # CLR=WRM/COOL/MUT(실제 색상 축, 유지) / TOP·OUT·DRS=콤마 join된 체형 추천 태그(예: "STR,WAV,NAT", 2026.09~ 상품 배수 아님) / PNT·ACC="-"
     season = Column(String, nullable=False)             # Y1SS, Y1FW, Y2SS ...
     status = Column(String, nullable=False)             # 기획중/샘플링중/생산중/판매중/품절/단종
     line_type = Column(String, nullable=False, default="BASIC")  # BASIC / TREND (2026.08 추가)
