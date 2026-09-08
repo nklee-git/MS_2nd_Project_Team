@@ -1,0 +1,94 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Pretendard";
+  src: url("/fonts/Pretendard-Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Pretendard";
+  src: url("/fonts/Pretendard-Medium.otf") format("opentype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Pretendard";
+  src: url("/fonts/Pretendard-SemiBold.otf") format("opentype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Pretendard";
+  src: url("/fonts/Pretendard-Bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --color-bg: #F5F6F8;
+  --color-surface: #FFFFFF;
+  --color-border: #E4E7EC;
+  --color-border-strong: #D0D5DD;
+  --color-text: #14151A;
+  --color-text-muted: #6B7280;
+  --color-text-faint: #9CA3AF;
+
+  /* Sidebar (near-black — kept separate from --color-accent so brand-green
+     doesn't collide visually with the 승인(Approved) status green below) */
+  --color-sidebar-bg: #14151A;
+  --color-sidebar-text: #D5D7DD;
+  --color-sidebar-text-muted: #83858E;
+  --color-sidebar-active-bg: #24262E;
+  --color-sidebar-border: #24262E;
+
+  --color-accent: #4338CA;
+  --color-accent-hover: #372DAB;
+  --color-accent-soft: #EEF0FD;
+
+  --color-amber: #B45309;
+  --color-amber-soft: #FEF3C7;
+  --color-amber-border: #FDE68A;
+
+  --color-green: #15803D;
+  --color-green-soft: #DCFCE7;
+  --color-green-border: #BBF7D0;
+
+  --color-red: #B91C1C;
+  --color-red-soft: #FEE2E2;
+  --color-red-border: #FECACA;
+
+  --font-sans: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, "Malgun Gothic", "Apple SD Gothic Neo", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Roboto Mono", Menlo, Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+/* Focus visibility kept intentional rather than removed */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
