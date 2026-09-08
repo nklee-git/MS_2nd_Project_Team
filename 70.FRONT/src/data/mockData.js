@@ -1,16 +1,26 @@
 // ---------------------------------------------------------------------------
 // Mock data layer.
 //
-// This file exists so the UI has something real to render before the actual
-// Dataverse / Databricks integration is wired up. Every shape here follows
-// "20.ARCHITECTURE/26. 대시보드 기술명세 (프론트).md" and
-// "20.ARCHITECTURE/24. 기능명세서 v1" field names 1:1, so swapping this out
-// for a real `fetch`/React Query hook later should not require touching the
-// view components — only the data-loading hook.
+// The product/SKU catalog below is NOT invented — it's parsed straight out of
+// the real generated dataset at
+// "30.DATA/32. nqnq_data/csv_preview/{products,sku_master,inventory_snapshot,
+// popularity_tier_performance}.csv" (copied into src/data/nqnq/ as-is).
+// Only two layers are still synthetic, because no real system produces them
+// yet: (1) the ReorderRecommendation workflow state (status/승인자/반려사유 —
+// no approval workflow has run), and (2) the held-out 예측-실측 daily series
+// in the 예측대조 뷰 (no ML model has produced real predictions yet). Both are
+// marked below. Swapping this whole file for a `fetch`/React Query hook later
+// should not require touching the view components — only the data-loading
+// hook.
 // ---------------------------------------------------------------------------
 
-// Small seeded PRNG so the mock data is stable across reloads instead of
-// jumping around every time the dev server hot-reloads.
+import productsCsv from "./nqnq/products.csv?raw";
+import skuMasterCsv from "./nqnq/sku_master.csv?raw";
+import inventoryCsv from "./nqnq/inventory_snapshot.csv?raw";
+import performanceCsv from "./nqnq/popularity_tier_performance.csv?raw";
+
+// Small seeded PRNG so synthetic layers (workflow state, held-out drift/noise)
+// are stable across reloads instead of jumping around every hot-reload.
 function mulberry32(seed) {
   return function () {
     seed |= 0;
@@ -21,38 +31,100 @@ function mulberry32(seed) {
   };
 }
 const rand = mulberry32(20260820);
-const pick = (arr) => arr[Math.floor(rand() * arr.length)];
 const int = (min, max) => Math.floor(min + rand() * (max - min + 1));
+
+function parseCsv(raw) {
+  const lines = raw.trim().split(/\r?\n/);
+  const headers = lines[0].split(",").map((h) => h.trim());
+  return lines.slice(1).map((line) => {
+    const cells = line.split(",");
+    return Object.fromEntries(headers.map((h, i) => [h, cells[i]?.trim()]));
+  });
+}
 
 export const CATEGORIES = [
   { code: "TOP", label: "상의" },
   { code: "PNT", label: "팬츠" },
   { code: "OUT", label: "아우터" },
   { code: "DRS", label: "원피스" },
-  { code: "CLR", label: "스커트" },
+  { code: "CLR", label: "퍼스널컬러 베이직" },
   { code: "ACC", label: "액세서리" },
 ];
 
 export const POPULARITY_TIERS = ["HERO", "STEADY", "NICHE"];
-const COLORS = ["BLK", "WHT", "BEG", "NVY", "GRY", "KHK"];
-const SIZES = ["XS", "S", "M", "L", "XL"];
 
-const STYLE_NAMES = {
-  TOP: ["베이직 크루넥 니트", "오버핏 코튼 셔츠", "리브 반팔 티", "브이넥 가디건"],
-  PNT: ["와이드 슬랙스", "스트레이트 데님", "밴딩 조거 팬츠", "크롭 슬림팬츠"],
-  OUT: ["울 블렌드 코트", "퍼프 패딩", "무스탕 재킷", "바시티 자켓"],
-  DRS: ["셔링 원피스", "니트 롱 원피스", "슬립 미디 드레스", "카라 셔츠 원피스"],
-  CLR: ["플리츠 롱스커트", "H라인 미니스커트", "데님 스커트", "니트 스커트"],
-  ACC: ["레더 벨트", "울 머플러", "버킷햇", "숄더백"],
+// ---------------------------------------------------------------------------
+// 0. 실데이터 파싱·조인 — products x sku_master x inventory_snapshot x
+//    popularity_tier_performance
+// ---------------------------------------------------------------------------
+
+const products = parseCsv(productsCsv);
+const skuRows = parseCsv(skuMasterCsv);
+const inventoryRows = parseCsv(inventoryCsv);
+const performanceRows = parseCsv(performanceCsv);
+
+const productById = new Map(products.map((p) => [p.product_id, p]));
+const inventoryBySku = new Map(inventoryRows.map((r) => [r.sku_code, r]));
+// 실적 파일은 카테고리+스타일명(체형코드 포함, 예: "STR 스퀘어라인 기본티") 단위로
+// 연간 판매량을 집계해뒀음 — products.csv의 style_name과 1:1로 매칭됨.
+const performanceByKey = new Map(
+  performanceRows.map((r) => [`${r.category_code}|${r.style_name}`, r])
+);
+
+const POPULARITY_WEIGHT_RANGE = {
+  HERO: [0.8, 1.0],
+  STEADY: [0.5, 0.8],
+  NICHE: [0.2, 0.5],
 };
 
-function makeSkuCode(category, color, size, idx) {
-  return `${category}-${color}-${size}-${String(idx).padStart(4, "0")}`;
+function popularityWeightFor(tier) {
+  const [lo, hi] = POPULARITY_WEIGHT_RANGE[tier] ?? POPULARITY_WEIGHT_RANGE.STEADY;
+  return lo + rand() * (hi - lo);
 }
+
+const ENRICHED_SKUS = skuRows
+  .map((sku) => {
+    const product = productById.get(sku.product_id);
+    const inventory = inventoryBySku.get(sku.sku_code);
+    if (!product || !inventory) return null; // preview CSV은 일부 product/SKU가 빠져있음
+
+    const perf = performanceByKey.get(`${product.category_code}|${product.style_name}`);
+    const annualSoldUnits = perf ? Number(perf.avg_per_sku) : 500; // 실적 없는 경우의 보수적 기본값
+
+    return {
+      sku_code: sku.sku_code,
+      product_id: sku.product_id,
+      style_name: product.style_name,
+      category_code: product.category_code,
+      body_tone_code: product.body_tone_code,
+      popularity_tier: product.popularity_tier,
+      line_type: product.line_type,
+      size: sku.size,
+      color_code: sku.color_code,
+      price: Number(sku.price),
+      available_qty: Number(inventory.available_qty),
+      reserved_qty: Number(inventory.reserved_qty),
+      safety_stock: Number(inventory.safety_stock),
+      reorder_point: Number(inventory.reorder_point),
+      annual_sold_units: annualSoldUnits,
+    };
+  })
+  .filter(Boolean);
 
 // ---------------------------------------------------------------------------
 // 1. 승인이력 뷰 — ReorderRecommendation 목록
+//    실제 트리거 조건(23. Alert & Trigger Rules 1번 행): available_qty가
+//    reorder_point 이하로 떨어진 SKU만 레코드가 생성됨.
 // ---------------------------------------------------------------------------
+
+export const MOCK_NOW = "2026-09-08T09:00:00+09:00";
+
+function daysAgoISO(days, hours = 0) {
+  const d = new Date(MOCK_NOW);
+  d.setDate(d.getDate() - days);
+  d.setHours(d.getHours() - hours);
+  return d.toISOString();
+}
 
 const STATUSES = ["Pending", "Approved", "Rejected"];
 const STATUS_WEIGHTS = [0.5, 0.35, 0.15]; // 대기 절반, 승인 다수, 반려 소수
@@ -67,56 +139,45 @@ function weightedStatus() {
   return STATUSES[STATUSES.length - 1];
 }
 
-// Fixed "지금" 기준점 — 실제 시스템 시계와 무관하게 상대시간 표시를 안정적으로
-// 재현하기 위한 앵커. 실데이터 연동 시에는 그냥 Date.now()로 바꾸면 됨.
-export const MOCK_NOW = "2026-09-08T09:00:00+09:00";
-
-function daysAgoISO(days, hours = 0) {
-  const d = new Date(MOCK_NOW);
-  d.setDate(d.getDate() - days);
-  d.setHours(d.getHours() - hours);
-  return d.toISOString();
-}
-
-export const REORDER_RECOMMENDATIONS = Array.from({ length: 42 }).map((_, i) => {
-  const category = pick(CATEGORIES).code;
-  const color = pick(COLORS);
-  const size = pick(SIZES);
-  const styleName = pick(STYLE_NAMES[category]);
-  const tier = pick(POPULARITY_TIERS);
-
-  // risk_score = 재고소진임박도(stockout_urgency) x 인기도가중치(popularity_weight)
-  const stockoutUrgency = Math.round(rand() * 100) / 100;
-  const popularityWeight =
-    tier === "HERO" ? 0.8 + rand() * 0.2 : tier === "STEADY" ? 0.5 + rand() * 0.3 : 0.2 + rand() * 0.3;
+export const REORDER_RECOMMENDATIONS = ENRICHED_SKUS.filter(
+  (s) => s.available_qty <= s.reorder_point
+).map((s, i) => {
+  // risk_score = 재고소진임박도(실 재고/재발주점) × 인기도가중치(실 popularity_tier)
+  const stockoutUrgency = Math.min(
+    1,
+    Math.max(0.05, 1 - s.available_qty / s.reorder_point)
+  );
+  const popularityWeight = popularityWeightFor(s.popularity_tier);
   const riskScore = Math.round(stockoutUrgency * popularityWeight * 100) / 100;
 
-  const predictedDemand = int(20, 400);
+  // predicted_demand: 실 연간 판매량(annual_sold_units)을 4주 발주 주기로
+  // 환산(÷13) — ML 모델이 아직 없어 실측 기반 추정치로 대체.
+  const predictedDemand = Math.max(5, Math.round((s.annual_sold_units / 13) * (0.85 + rand() * 0.3)));
   const recommendedQty = Math.round(predictedDemand * (1.05 + rand() * 0.25));
 
   const status = weightedStatus();
   const createdDaysAgo = int(0, 6);
   const createdHoursAgo = int(0, 23);
-  const resolutionHours = int(1, 30); // 승인/반려까지 걸린 시간 (평균 처리시간 계산용)
+  const resolutionHours = int(1, 30);
 
-  const availableQty = int(0, 120);
-  const reservedQty = int(0, 40);
-  const safetyStock = int(30, 80);
-  const reorderPoint = safetyStock + int(10, 40);
-
-  const salesTrend = Array.from({ length: 14 }).map(() => int(0, 25));
+  // 최근 14일 판매 추이 — SKU 단위 일별 실데이터가 없어 연간 판매량 기반 일평균을
+  // 중심으로 지터를 준 근사치 (스파크라인용).
+  const dailyAvg = Math.max(1, s.annual_sold_units / 365);
+  const salesTrend = Array.from({ length: 14 }).map(() =>
+    Math.max(0, Math.round(dailyAvg * (0.5 + rand())))
+  );
 
   return {
     id: `RR-${1000 + i}`,
-    sku_code: makeSkuCode(category, color, size, 200 + i),
-    style_name: styleName,
-    category_code: category,
-    color_code: color,
-    size,
-    popularity_tier: tier,
+    sku_code: s.sku_code,
+    style_name: s.style_name,
+    category_code: s.category_code,
+    color_code: s.color_code,
+    size: s.size,
+    popularity_tier: s.popularity_tier,
     risk_score: riskScore,
     risk_breakdown: {
-      stockout_urgency: stockoutUrgency,
+      stockout_urgency: Math.round(stockoutUrgency * 100) / 100,
       popularity_weight: Math.round(popularityWeight * 100) / 100,
     },
     predicted_demand: predictedDemand,
@@ -132,10 +193,10 @@ export const REORDER_RECOMMENDATIONS = Array.from({ length: 42 }).map((_, i) => 
     approved_by: status === "Approved" ? "seoyeon.l@kakaostyle.com" : null,
     rejection_reason: status === "Rejected" ? "이번 시즌 컬러 단종 예정 — 재발주 보류" : null,
     inventory: {
-      available_qty: availableQty,
-      reserved_qty: reservedQty,
-      safety_stock: safetyStock,
-      reorder_point: reorderPoint,
+      available_qty: s.available_qty,
+      reserved_qty: s.reserved_qty,
+      safety_stock: s.safety_stock,
+      reorder_point: s.reorder_point,
     },
     sales_trend: salesTrend,
   };
@@ -143,6 +204,10 @@ export const REORDER_RECOMMENDATIONS = Array.from({ length: 42 }).map((_, i) => 
 
 // ---------------------------------------------------------------------------
 // 2. 예측대조 뷰 — held-out 구간 예측치 vs 실측치
+//    ⚠️ 아직 진짜 시뮬레이션: 9월 held-out 실측·ML 예측 둘 다 실제로 존재하지
+//    않음(모델링 롤 산출 전). 카테고리별 기준 수요(CATEGORY_BASE_DEMAND)만
+//    실데이터(popularity_tier_performance.csv 카테고리별 연간 판매량 ÷365)로
+//    앵커링했고, 날짜별 드리프트·오차 패턴은 여전히 서사용 근사치.
 // ---------------------------------------------------------------------------
 
 const CUTOFF_DATE = new Date("2026-08-20");
@@ -154,8 +219,6 @@ function dateStr(offset) {
   return d.toISOString().slice(0, 10);
 }
 
-// 카테고리별 계절 민감도(간단 근사) — OUT은 날짜가 지날수록(가을 진입) 수요 우상향,
-// DRS는 하강, 나머지는 완만. 실제 로직은 ML 롤의 held-out 결과로 대체될 자리.
 const CATEGORY_SEASONAL_DRIFT = {
   TOP: 0.15,
   PNT: 0.05,
@@ -164,9 +227,18 @@ const CATEGORY_SEASONAL_DRIFT = {
   CLR: -0.1,
   ACC: 0.1,
 };
-const CATEGORY_BASE_DEMAND = { TOP: 340, PNT: 260, OUT: 180, DRS: 150, CLR: 120, ACC: 90 };
-// OUT은 계절 전환기라 오차가 크고, TOP/PNT처럼 정상판매 카테고리는 오차가 작다는
-// 서사를 반영 (발표 포인트: "왜 이 카테고리는 유독 잘 맞았는지").
+
+// 카테고리별 연간 판매량(popularity_tier_performance.csv 실적 합계) ÷ 365
+const CATEGORY_BASE_DEMAND = (() => {
+  const totals = {};
+  performanceRows.forEach((r) => {
+    totals[r.category_code] = (totals[r.category_code] ?? 0) + Number(r.sold_units);
+  });
+  return Object.fromEntries(
+    Object.entries(totals).map(([code, total]) => [code, Math.round(total / 365)])
+  );
+})();
+
 const CATEGORY_NOISE = { TOP: 0.05, PNT: 0.06, OUT: 0.19, DRS: 0.15, CLR: 0.08, ACC: 0.07 };
 
 export const FORECAST_SERIES = Array.from({ length: HELD_OUT_DAYS }).map((_, dayIdx) => {
@@ -176,7 +248,7 @@ export const FORECAST_SERIES = Array.from({ length: HELD_OUT_DAYS }).map((_, day
 
   CATEGORIES.forEach(({ code }) => {
     const drift = CATEGORY_SEASONAL_DRIFT[code] * (dayIdx / HELD_OUT_DAYS);
-    const base = CATEGORY_BASE_DEMAND[code] * (1 + drift);
+    const base = (CATEGORY_BASE_DEMAND[code] ?? 100) * (1 + drift);
     const actual = Math.max(10, Math.round(base * (0.95 + rand() * 0.1)));
     const noise = CATEGORY_NOISE[code];
     const predicted = Math.max(10, Math.round(actual * (1 + (rand() * 2 - 1) * noise)));
@@ -213,28 +285,32 @@ export const FORECAST_SUMMARY = {
   target_mape: 12.0, // KPI Definitions 분기 목표(예시값) — 실제 값으로 교체 필요
 };
 
-// SKU별 오차 상세 (오차 큰 순)
-export const SKU_ERRORS = REORDER_RECOMMENDATIONS.slice(0, 16).map((r) => {
-  const err = CATEGORY_ERROR_RATES.find((c) => c.category_code === r.category_code).mape;
-  const jitter = Math.round((rand() * 14 - 4) * 10) / 10;
-  return {
-    sku_code: r.sku_code,
-    style_name: r.style_name,
-    category_code: r.category_code,
-    predicted_total: r.predicted_demand,
-    actual_total: Math.round(r.predicted_demand * (1 - (err + jitter) / 100)),
-    mape: Math.max(1, Math.round((err + jitter) * 10) / 10),
-  };
-}).sort((a, b) => b.mape - a.mape);
+// SKU별 오차 상세 (오차 큰 순) — risk_score 상위 SKU 기준
+export const SKU_ERRORS = [...REORDER_RECOMMENDATIONS]
+  .sort((a, b) => b.risk_score - a.risk_score)
+  .slice(0, 16)
+  .map((r) => {
+    const err = CATEGORY_ERROR_RATES.find((c) => c.category_code === r.category_code).mape;
+    const jitter = Math.round((rand() * 14 - 4) * 10) / 10;
+    return {
+      sku_code: r.sku_code,
+      style_name: r.style_name,
+      category_code: r.category_code,
+      predicted_total: r.predicted_demand,
+      actual_total: Math.round(r.predicted_demand * (1 - (err + jitter) / 100)),
+      mape: Math.max(1, Math.round((err + jitter) * 10) / 10),
+    };
+  })
+  .sort((a, b) => b.mape - a.mape);
 
 // SKU별 일별 예측-실측 시리즈 (SKU_ERRORS 16건 한정) — SkuErrorTable 행 클릭 시
 // ForecastLineChart에 해당 SKU만 하이라이트하는 인터랙션(26. 대시보드 기술명세
-// 2-5절)용 목업. 카테고리 집계와 같은 계절 드리프트를 쓰되 SKU 1개 규모로 축소.
+// 2-5절)용. 카테고리 집계와 같은 계절 드리프트를 쓰되 SKU 1개 규모로 축소한 근사치.
 export const SKU_DAILY_SERIES = Object.fromEntries(
   SKU_ERRORS.map((row) => {
     const drift = CATEGORY_SEASONAL_DRIFT[row.category_code];
     const noise = CATEGORY_NOISE[row.category_code];
-    const skuBase = 4 + rand() * 10; // SKU 1개 단위 일평균 판매량 규모
+    const skuBase = 4 + rand() * 10;
     const series = Array.from({ length: HELD_OUT_DAYS }).map((_, dayIdx) => {
       const base = skuBase * (1 + drift * (dayIdx / HELD_OUT_DAYS));
       const actual = Math.max(1, Math.round(base * (0.9 + rand() * 0.2)));
@@ -247,6 +323,10 @@ export const SKU_DAILY_SERIES = Object.fromEntries(
 
 // ---------------------------------------------------------------------------
 // 3. 데이터 조회 뷰 — 질문 칩 결과 (Should)
+//    "가장 위험한 SKU 5개"·"인기도 티어별 평균 판매량"은 REORDER_RECOMMENDATIONS
+//    (실데이터 기반)에서 바로 뽑음. 반품·채널별 매출은 preview 샘플이 너무
+//    작아(반품 500건 샘플, 채널은 ZIGZAG 단일값만 존재) 아직 대표성이 없어
+//    기존처럼 예시 수치로 남겨둠 — 실데이터 연동 시 교체.
 // ---------------------------------------------------------------------------
 
 export const QUERY_CHIPS = [
