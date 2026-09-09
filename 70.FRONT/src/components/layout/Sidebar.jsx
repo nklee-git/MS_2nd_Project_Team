@@ -1,6 +1,7 @@
-import { ClipboardCheck, LineChart, MessageSquareText, History } from "lucide-react";
+import { LayoutGrid, ClipboardCheck, LineChart, MessageSquareText, History } from "lucide-react";
 
 const NAV_ITEMS = [
+  { id: "home", label: "홈", icon: LayoutGrid },
   { id: "approvals", label: "승인이력", icon: ClipboardCheck },
   { id: "forecast", label: "예측대조", icon: LineChart },
   { id: "query", label: "데이터 조회", icon: MessageSquareText },
