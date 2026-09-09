@@ -8,7 +8,7 @@ inventory_snapshot·popularity_tier_performance — 실제 NQNQ 카탈로그 생
 예측대조 뷰의 held-out 일별 수치만 아직 진짜 시스템이 없어 시뮬레이션입니다(코드
 주석에 표시해둠). 변경 이력은 앱 안의 "버전 기록" 탭 또는 `src/data/changelog.js` 참고.
 
-## 진행 상황 (2026-09-08 기준)
+## 진행 상황 (2026-09-09 기준)
 
 **완료**
 - [x] Must 전부 — 승인이력 뷰(요약카드·필터·테이블), 예측대조 뷰(요약카드·기간선택·메인차트)
@@ -17,6 +17,7 @@ inventory_snapshot·popularity_tier_performance — 실제 NQNQ 카탈로그 생
 - [x] 사이드바 레이아웃 · Pretendard 폰트 · 버전 기록 탭
 - [x] mockData를 실제 NQNQ 카탈로그(CSV)로 연동 — 이전엔 스타일명을 임의로 지어냈었음(예:
       "H라인 미니스커트" 등 실제 카탈로그에 없는 이름)
+- [x] 홈 탭 — 위젯 카드형 모듈형 대시보드 (추가/제거/드래그 순서변경, localStorage에 순서 저장)
 
 **남은 것**
 - [ ] Teams 웹사이트 탭 연동 — 프론트 단독으로 불가, RAG 롤 Power Automate 세팅 이후
@@ -49,8 +50,13 @@ src/
     changelog.js              # 버전 기록 데이터
   utils/format.js            # 상대시간·숫자 포맷 유틸
   components/
-    layout/Sidebar.jsx       # 좌측 사이드바 — 로고 + 탭 4개 + 사용자 정보
+    layout/Sidebar.jsx       # 좌측 사이드바 — 로고 + 탭 5개 + 사용자 정보
     ui/                       # Badge, SummaryCard, RiskBar — 화면 전반에서 재사용
+    home/                     # 홈 뷰 — 위젯 카드형 모듈형 대시보드
+      HomeView.jsx            #   위젯 순서/표시 state 관리 + localStorage 저장, 드래그앤드롭
+      WidgetShell.jsx         #   위젯 카드 공통 껍데기 — 드래그 핸들 + 제목 + 숨기기 버튼
+      StatRow.jsx             #   3~4개 소형 지표를 나열하는 공용 레이아웃
+      widgets/                #   위젯 6종 — 각자 mockData에서 직접 데이터를 가져옴
     approvals/                # 승인이력 뷰 (Must)
       ApprovalsView.jsx       #   요약카드+필터+테이블+드로어 조합, 상태(승인/반려) 로컬 처리
       FilterBar.jsx           #   상태/카테고리/인기도 필터 + SKU 검색
@@ -81,8 +87,11 @@ import하는 부분만 교체하면 됩니다).
 
 ## 디자인 결정 사항 (담당자 재량 영역, 4절)
 
-- **레이아웃은 좌측 사이드바**입니다 — 4개 탭(승인이력/예측대조/데이터조회/버전기록)을
+- **레이아웃은 좌측 사이드바**입니다 — 5개 탭(홈/승인이력/예측대조/데이터조회/버전기록)을
   아이콘+라벨로 나열, 다크 배경(`--color-sidebar-bg`)으로 메인 콘텐츠(밝은 배경)와 대비.
+- **홈 탭은 위젯 카드형**으로 구현 — 사용자가 위젯을 추가/제거하고 드래그로 순서를
+  바꿀 수 있음(레이아웃 크기는 위젯별로 고정, 순서만 조정 가능). 상태는 `localStorage`에
+  저장되어 새로고침해도 유지됨.
 - **폰트는 Pretendard**로 통일(`public/fonts/`에 4개 굵기 로컬 포함, 시스템에 폰트가
   없는 환경에서도 동일하게 렌더링됨).
 - **브랜드 액센트는 인디고(`--color-accent: #4338CA`) 유지** — 참고 이미지의 민트그린 대신
