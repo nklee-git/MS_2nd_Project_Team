@@ -26,7 +26,7 @@ export default function SkuErrorTable({ selectedSku, onRowClick }) {
                 key={row.sku_code}
                 onClick={() => onRowClick(isActive ? null : row.sku_code)}
                 className={`cursor-pointer border-b border-[var(--color-border)] last:border-0 ${
-                  isActive ? "bg-[var(--color-accent-soft)]" : "hover:bg-[#FAFBFC]"
+                  isActive ? "bg-[var(--color-accent-soft)]" : "hover:bg-[#F9F9F9]"
                 }`}
               >
                 <td className="whitespace-nowrap px-5 py-2 font-[var(--font-mono)] text-[13px]">

@@ -59,7 +59,7 @@ export default function ForecastView() {
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-1 rounded-lg bg-[#F2F4F7] p-1 w-fit">
+        <div className="flex items-center gap-1 rounded-lg bg-[#F9F9F9] p-1 w-fit">
           {PRESETS.map((p) => (
             <button
               key={p.id}

@@ -18,6 +18,9 @@ import productsCsv from "./nqnq/products.csv?raw";
 import skuMasterCsv from "./nqnq/sku_master.csv?raw";
 import inventoryCsv from "./nqnq/inventory_snapshot.csv?raw";
 import performanceCsv from "./nqnq/popularity_tier_performance.csv?raw";
+import monthlyRevenueCsv from "./nqnq/monthly_revenue_summary.csv?raw";
+import returnsCsv from "./nqnq/returns_sample.csv?raw";
+import trendCapsuleCsv from "./nqnq/trend_capsule_performance.csv?raw";
 
 // Small seeded PRNG so synthetic layers (workflow state, held-out drift/noise)
 // are stable across reloads instead of jumping around every hot-reload.
@@ -82,7 +85,7 @@ function popularityWeightFor(tier) {
   return lo + rand() * (hi - lo);
 }
 
-const ENRICHED_SKUS = skuRows
+export const ENRICHED_SKUS = skuRows
   .map((sku) => {
     const product = productById.get(sku.product_id);
     const inventory = inventoryBySku.get(sku.sku_code);
@@ -102,6 +105,7 @@ const ENRICHED_SKUS = skuRows
       size: sku.size,
       color_code: sku.color_code,
       price: Number(sku.price),
+      cost: Number(sku.cost),
       available_qty: Number(inventory.available_qty),
       reserved_qty: Number(inventory.reserved_qty),
       safety_stock: Number(inventory.safety_stock),
@@ -383,3 +387,192 @@ export const QUERY_CHIPS = [
 ];
 
 export const STATUS_LABEL = { Pending: "대기", Approved: "승인", Rejected: "반려" };
+
+// ---------------------------------------------------------------------------
+// 4. 홈 위젯용 재무/판매 KPI — 실데이터 기반
+//    ⚠️ 아래 4개 블록은 홈 대시보드 위젯(객단가·성장률·실수익예상·반품사유·
+//    베스트셀러·트렌드캡슐)을 위해 추가됨. monthly_revenue_summary.csv는
+//    전체 기간(2024-03~2026-08) 집계라 표본이 아니라 실측치 그대로 사용.
+//    returns_sample.csv는 500건 표본이라 "반품률" 절대값(=표본건수/전체주문)은
+//    대표성이 없어 계산하지 않고, 사유(R01~R05) 간 상대 비율만 사용.
+// ---------------------------------------------------------------------------
+
+export const MONTHLY_REVENUE = parseCsv(monthlyRevenueCsv).map((r) => ({
+  month: r.month,
+  order_count: Number(r.order_count),
+  revenue: Number(r.revenue),
+  revenue_billion: Number(r["revenue_억"]),
+}));
+
+// 43. Revenue & Cost Structure 기준 실비용 구조: 원가(원단+공임+물류) 48%
+// (COST_RATIO, generate_v4.py) + 마케팅비 12% + 채널수수료(지그재그) 15% = 75%
+// → 추정 영업이익률 25% (문서상 실데이터 검증치 25.6%와 근접). "발주원가+수수료
+// 등 합쳐 30%"는 추정 근거 없이 잡은 값이라, 실제 문서화된 구조로 대체함.
+export const PROFIT_MODEL = {
+  cogs_ratio: 0.48,
+  marketing_ratio: 0.12,
+  channel_commission_ratio: 0.15,
+  estimated_margin_ratio: 0.25,
+};
+
+const REASON_CODES = ["R01", "R02", "R03", "R04", "R05"];
+export const REASON_LABEL = {
+  R01: "사이즈 안 맞음",
+  R02: "색상/이미지 상이",
+  R03: "단순 변심",
+  R04: "불량/하자",
+  R05: "쇼룸 체험 후 사이즈 변경",
+};
+
+const returnRows = parseCsv(returnsCsv);
+const returnTotal = returnRows.length;
+export const RETURN_REASON_BREAKDOWN = REASON_CODES.map((code) => {
+  const count = returnRows.filter((r) => r.reason_code === code).length;
+  return {
+    code,
+    label: REASON_LABEL[code],
+    count,
+    pct: returnTotal === 0 ? 0 : Math.round((count / returnTotal) * 1000) / 10,
+  };
+});
+
+// 트렌드캡슐 — NQNQ에는 아직 정식 "프로모션/할인" 엔터티가 없어(백로그),
+// 시즌 한정 캡슐 컬렉션 실적을 프로모션성 현황의 대체 지표로 사용.
+export const TREND_CAPSULES = parseCsv(trendCapsuleCsv).map((r) => ({
+  style_name: r.style_name,
+  status: r.status,
+  launch_date: r.launch_date,
+  sold_units: Number(r.sold_units),
+  revenue: Number(r.revenue),
+}));
+
+// 베스트셀러 — popularity_tier_performance.csv(카테고리+스타일 단위 연간
+// 실측 판매량, 표본 아님)에서 판매량 상위 스타일.
+export const BEST_SELLERS = [...performanceRows]
+  .map((r) => ({
+    style_name: r.style_name,
+    category_code: r.category_code,
+    popularity_tier: r.popularity_tier,
+    sold_units: Number(r.sold_units),
+  }))
+  .sort((a, b) => b.sold_units - a.sold_units)
+  .slice(0, 6);
+
+// ---------------------------------------------------------------------------
+// 8. 핵심 판매 KPI (44. KPI Definitions 기준) — 실무에서 쓰는 9개 지표를
+//    실측/도출 가능한 건 실제 공식으로 계산하고, 원천 데이터가 전혀 없는
+//    건(방문 세션·광고비·고객별 재구매 이력) 44.md 자체에 "가정"으로
+//    표시된 목표치만 그대로 가져온다 — 없는 걸 숫자로 지어내지 않음.
+// ---------------------------------------------------------------------------
+
+// GMV = 순매출 ÷ 0.94 (반품 반영 실측 비율, 44. KPI Definitions 근거)
+const latestMonth = MONTHLY_REVENUE[MONTHLY_REVENUE.length - 1];
+const gmvLatest = Math.round(latestMonth.revenue / 0.94);
+
+// Y3(2026.03~2027.02) 월 목표 근사 = 연간 목표(1,000억) ÷ 12
+const Y3_MONTHLY_TARGET = 100_000_000_000 / 12;
+const revenueVsMonthlyTarget =
+  Math.round((latestMonth.revenue / Y3_MONTHLY_TARGET) * 1000) / 10;
+
+// 재고회전율 = 매출원가 ÷ 평균재고자산 (분기 기준, 44. KPI Definitions)
+// 평균재고자산은 히스토리 스냅샷이 없어 현재 1개 시점 재고자산으로 근사.
+const last3Months = MONTHLY_REVENUE.slice(-3);
+const quarterlyCogs = last3Months.reduce((sum, m) => sum + m.revenue * PROFIT_MODEL.cogs_ratio, 0);
+const currentInventoryValue = ENRICHED_SKUS.reduce((sum, s) => sum + s.available_qty * s.cost, 0);
+const inventoryTurnoverAnnualized =
+  currentInventoryValue === 0 ? 0 : Math.round((quarterlyCogs / currentInventoryValue) * 4 * 10) / 10;
+
+// 반품율 = ReturnRequest / OrderItem, v4 시나리오 전체 실측 집계
+// (README.md 생성 결과 규모: OrderItem 1,648,337 / ReturnRequest 242,753 —
+// 체형태그·사이즈 개편 이전 카탈로그 기준, 재생성 전까지 최선의 실측값)
+const RETURN_RATE_ACTUAL = Math.round((242753 / 1648337) * 1000) / 10;
+
+export const SALES_KPI_TABLE = [
+  {
+    key: "gmv",
+    label: "GMV",
+    value: `${(gmvLatest / 100000000).toFixed(1)}억`,
+    caption: `최근월(${latestMonth.month}) 참고치 — 순매출÷0.94`,
+    status: "info",
+  },
+  {
+    key: "revenue",
+    label: "매출액",
+    value: `${latestMonth.revenue_billion}억`,
+    caption: `Y3 월목표(83.3억) 대비 ${revenueVsMonthlyTarget}%`,
+    status: revenueVsMonthlyTarget >= 100 ? "good" : revenueVsMonthlyTarget >= 80 ? "warn" : "bad",
+  },
+  {
+    key: "margin",
+    label: "마진율",
+    value: `${(PROFIT_MODEL.estimated_margin_ratio * 100).toFixed(0)}%`,
+    caption: "목표 25% · 경고 20% 미만",
+    status: PROFIT_MODEL.estimated_margin_ratio >= 0.25 ? "good" : PROFIT_MODEL.estimated_margin_ratio >= 0.2 ? "warn" : "bad",
+  },
+  {
+    key: "turnover",
+    label: "재고회전율",
+    value: `연 ${inventoryTurnoverAnnualized}회전`,
+    caption: "목표 연 4~6회전 · 경고 3회전 미만",
+    status: inventoryTurnoverAnnualized >= 4 ? "good" : inventoryTurnoverAnnualized >= 3 ? "warn" : "bad",
+  },
+  {
+    key: "returnRate",
+    label: "반품율",
+    value: `${RETURN_RATE_ACTUAL}%`,
+    caption: "목표 TOP 15%·PANTS 20%·COLOR 10% (v4 시나리오 전체 실측)",
+    status: RETURN_RATE_ACTUAL <= 15 ? "good" : RETURN_RATE_ACTUAL <= 20 ? "warn" : "bad",
+  },
+  {
+    key: "aov",
+    label: "객단가(AOV)",
+    value: `${formatKrwShort(latestMonth.revenue / latestMonth.order_count)}`,
+    caption: "목표 75,000~85,000원",
+    status:
+      latestMonth.revenue / latestMonth.order_count >= 75000 && latestMonth.revenue / latestMonth.order_count <= 85000
+        ? "good"
+        : "warn",
+  },
+  {
+    key: "cvr",
+    label: "CVR(전환율)",
+    value: "미수집",
+    caption: "목표 2~3% — 방문 세션 데이터 없음(백로그)",
+    status: "unknown",
+  },
+  {
+    key: "repeatRate",
+    label: "재구매율",
+    value: "30% (가정)",
+    caption: "고객별 구매 이력 미축적 — 44.md 가정치 그대로",
+    status: "unknown",
+  },
+  {
+    key: "roas",
+    label: "마케팅 ROAS",
+    value: "미수집",
+    caption: "목표 3.0x 이상 — 광고비 데이터 없음(백로그)",
+    status: "unknown",
+  },
+];
+
+function formatKrwShort(n) {
+  return `${Math.round(n).toLocaleString("ko-KR")}원`;
+}
+
+// Y1/Y2/Y3 연간 매출 목표 대비 실적 (01. Master Roadmap 기준)
+export const SALES_TARGETS = [
+  { year: "Y1", range: "2024.03~2025.02", target: 100, months: ["2024-03", "2025-02"] },
+  { year: "Y2", range: "2025.03~2026.02", target: 400, months: ["2025-03", "2026-02"] },
+  { year: "Y3", range: "2026.03~2027.02", target: 1000, months: ["2026-03", "2026-08"] },
+].map((y) => {
+  const actual = MONTHLY_REVENUE.filter((m) => m.month >= y.months[0] && m.month <= y.months[1]).reduce(
+    (sum, m) => sum + m.revenue_billion,
+    0
+  );
+  return {
+    ...y,
+    actual: Math.round(actual * 10) / 10,
+    pct: Math.round((actual / y.target) * 1000) / 10,
+  };
+});

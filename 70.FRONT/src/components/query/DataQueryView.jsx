@@ -40,7 +40,7 @@ export default function DataQueryView() {
               className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
                 activeId === chip.id
                   ? "border-[var(--color-accent)] bg-[var(--color-accent-soft)] text-[var(--color-accent)]"
-                  : "border-[var(--color-border)] text-[var(--color-text)] hover:bg-[#F2F4F7]"
+                  : "border-[var(--color-border)] text-[var(--color-text)] hover:bg-[#F9F9F9]"
               }`}
             >
               {chip.label}
@@ -55,7 +55,7 @@ export default function DataQueryView() {
             <h4 className="text-sm font-semibold text-[var(--color-text)]">{active.label}</h4>
             <button
               onClick={() => downloadCsv(active)}
-              className="inline-flex items-center gap-1.5 rounded-md border border-[var(--color-border)] px-2.5 py-1.5 text-xs font-medium text-[var(--color-text)] hover:bg-[#F2F4F7]"
+              className="inline-flex items-center gap-1.5 rounded-md border border-[var(--color-border)] px-2.5 py-1.5 text-xs font-medium text-[var(--color-text)] hover:bg-[#F9F9F9]"
             >
               <Download className="h-3.5 w-3.5" />
               CSV 다운로드
@@ -66,11 +66,11 @@ export default function DataQueryView() {
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={active.result} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                  <CartesianGrid stroke="#EEF0F3" vertical={false} />
-                  <XAxis dataKey="category" tick={{ fontSize: 11, fill: "#98A2B3" }} axisLine={{ stroke: "#E4E7EC" }} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: "#98A2B3" }} axisLine={false} tickLine={false} width={44} />
-                  <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #E4E7EC" }} />
-                  <Bar dataKey="value" radius={[4, 4, 0, 0]} fill="#4338CA" />
+                  <CartesianGrid stroke="rgba(0,0,0,0.08)" vertical={false} />
+                  <XAxis dataKey="category" tick={{ fontSize: 11, fill: "rgba(0,0,0,0.45)" }} axisLine={{ stroke: "rgba(0,0,0,0.15)" }} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: "rgba(0,0,0,0.45)" }} axisLine={false} tickLine={false} width={44} />
+                  <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid rgba(0,0,0,0.15)" }} />
+                  <Bar dataKey="value" radius={[4, 4, 0, 0]} fill="#F33283" />
                 </BarChart>
               </ResponsiveContainer>
             </div>

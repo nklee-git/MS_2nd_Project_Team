@@ -19,9 +19,9 @@ function loadOrder() {
   }
 }
 
-export default function HomeView() {
+export default function HomeView({ role, onNavigateTab }) {
   const [visibleIds, setVisibleIds] = useState(loadOrder);
-  const [dragIndex, setDragIndex] = useState(null);
+  const [dragId, setDragId] = useState(null);
 
   useEffect(() => {
     try {
@@ -32,23 +32,37 @@ export default function HomeView() {
   }, [visibleIds]);
 
   const widgetsById = useMemo(() => Object.fromEntries(WIDGET_REGISTRY.map((w) => [w.id, w])), []);
+
+  // 27. 이해관계자 협업 대시보드 UX-UI 기능명세서 4-1절 — 역할에 태깅되지
+  // 않은 위젯은 순서/표시 상태와 무관하게 그리드·"숨긴 위젯" 목록 모두에서 제외.
+  const idsForRole = useMemo(
+    () => WIDGET_REGISTRY.filter((w) => w.roles.includes(role)).map((w) => w.id),
+    [role]
+  );
+  const visibleIdsForRole = useMemo(
+    () => visibleIds.filter((id) => idsForRole.includes(id)),
+    [visibleIds, idsForRole]
+  );
   const hiddenIds = useMemo(
-    () => DEFAULT_WIDGET_ORDER.filter((id) => !visibleIds.includes(id)),
-    [visibleIds]
+    () => idsForRole.filter((id) => !visibleIds.includes(id)),
+    [idsForRole, visibleIds]
   );
 
   const handleRemove = (id) => setVisibleIds((prev) => prev.filter((x) => x !== id));
   const handleAdd = (id) => setVisibleIds((prev) => [...prev, id]);
 
-  const handleDrop = (dropIndex) => {
+  // id 기반으로 재정렬 — visibleIds는 모든 역할의 위젯이 섞인 전역 순서라,
+  // 지금 화면에 안 보이는(다른 역할 소속) 항목의 상대 순서는 그대로 둬야 함.
+  const handleDrop = (dropId) => {
     setVisibleIds((prev) => {
-      if (dragIndex === null || dragIndex === dropIndex) return prev;
-      const next = [...prev];
-      const [moved] = next.splice(dragIndex, 1);
-      next.splice(dropIndex, 0, moved);
+      if (dragId === null || dragId === dropId) return prev;
+      const next = prev.filter((id) => id !== dragId);
+      const dropAt = next.indexOf(dropId);
+      if (dropAt === -1) return prev;
+      next.splice(dropAt, 0, dragId);
       return next;
     });
-    setDragIndex(null);
+    setDragId(null);
   };
 
   return (
@@ -70,7 +84,7 @@ export default function HomeView() {
       )}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
-        {visibleIds.map((id, index) => {
+        {visibleIdsForRole.map((id) => {
           const widget = widgetsById[id];
           if (!widget) return null;
           const Content = widget.Component;
@@ -79,7 +93,7 @@ export default function HomeView() {
               key={id}
               className={widget.span}
               onDragOver={(e) => e.preventDefault()}
-              onDrop={() => handleDrop(index)}
+              onDrop={() => handleDrop(id)}
             >
               <WidgetShell
                 title={widget.title}
@@ -87,11 +101,11 @@ export default function HomeView() {
                 onRemove={() => handleRemove(id)}
                 dragHandleProps={{
                   draggable: true,
-                  onDragStart: () => setDragIndex(index),
-                  onDragEnd: () => setDragIndex(null),
+                  onDragStart: () => setDragId(id),
+                  onDragEnd: () => setDragId(null),
                 }}
               >
-                <Content />
+                <Content onNavigateTab={onNavigateTab} />
               </WidgetShell>
             </div>
           );

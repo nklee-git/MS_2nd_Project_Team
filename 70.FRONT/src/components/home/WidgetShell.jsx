@@ -22,7 +22,7 @@ export default function WidgetShell({ title, description, onRemove, dragHandlePr
         <button
           onClick={onRemove}
           title="위젯 숨기기"
-          className="shrink-0 rounded-md p-1 text-[var(--color-text-faint)] hover:bg-[#F2F4F7] hover:text-[var(--color-text-muted)]"
+          className="shrink-0 rounded-md p-1 text-[var(--color-text-faint)] hover:bg-[#F9F9F9] hover:text-[var(--color-text-muted)]"
         >
           <X className="h-3.5 w-3.5" />
         </button>

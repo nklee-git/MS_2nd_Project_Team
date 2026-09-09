@@ -1,5 +1,5 @@
 const VARIANTS = {
-  neutral: "text-[var(--color-text-muted)] bg-[#F2F4F7] border-[var(--color-border)]",
+  neutral: "text-[var(--color-text-muted)] bg-[#F9F9F9] border-[var(--color-border)]",
   accent: "text-[var(--color-accent)] bg-[var(--color-accent-soft)] border-transparent",
   amber: "text-[var(--color-amber)] bg-[var(--color-amber-soft)] border-[var(--color-amber-border)]",
   green: "text-[var(--color-green)] bg-[var(--color-green-soft)] border-[var(--color-green-border)]",

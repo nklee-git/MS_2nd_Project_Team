@@ -14,7 +14,7 @@ export default function SummaryCard({ label, value, unit, caption, tone = "neutr
       <div className="flex items-center justify-between">
         <div className="text-sm text-[var(--color-text-muted)]">{label}</div>
         {Icon && (
-          <div className="grid h-7 w-7 place-items-center rounded-lg bg-[#F2F4F7] text-[var(--color-text-muted)]">
+          <div className="grid h-7 w-7 place-items-center rounded-lg bg-[#F9F9F9] text-[var(--color-text-muted)]">
             <Icon className="h-3.5 w-3.5" />
           </div>
         )}

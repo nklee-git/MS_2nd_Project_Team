@@ -21,7 +21,7 @@ export default function RiskBar({ score }) {
   const pct = Math.round(Math.min(1, Math.max(0, score)) * 100);
   return (
     <div className="flex items-center gap-2 w-28">
-      <div className="h-1.5 flex-1 rounded-full bg-[#F1F2F4] overflow-hidden">
+      <div className="h-1.5 flex-1 rounded-full bg-[#00000014] overflow-hidden">
         <div
           className="h-full rounded-full"
           style={{ width: `${pct}%`, backgroundColor: colorFor(score) }}

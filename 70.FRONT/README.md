@@ -1,7 +1,9 @@
 # Fashion AI Agent — 대시보드 프론트엔드 스켈레톤
 
-`20.ARCHITECTURE/26. 대시보드 기술명세 (프론트).md`에 정의된 화면 구조를 코드로
-옮긴 시작점입니다. 실제 Dataverse 연동 전까지는 `src/data/mockData.js`가 데이터를
+[26. 대시보드 기술명세 (프론트).md](<26. 대시보드 기술명세 (프론트).md>)에 정의된 화면 구조를 코드로
+옮긴 시작점입니다(2026-09-09부로 원래 `20.ARCHITECTURE`에 있던 26·27번 문서를 하나로 합쳐
+이 폴더로 옮겨왔습니다 — PART 1=v1 MVP 스펙, PART 2=v2 협업 대시보드 확장). 실제 Dataverse
+연동 전까지는 `src/data/mockData.js`가 데이터를
 대신하는데, 아무 값이나 지어낸 게 아니라 `src/data/nqnq/*.csv`(products·sku_master·
 inventory_snapshot·popularity_tier_performance — 실제 NQNQ 카탈로그 생성 데이터를
 그대로 복사해온 것)를 파싱·조인해서 씁니다. 승인/반려 같은 워크플로우 상태와
@@ -17,9 +19,14 @@ inventory_snapshot·popularity_tier_performance — 실제 NQNQ 카탈로그 생
 - [x] 사이드바 레이아웃 · Pretendard 폰트 · 버전 기록 탭
 - [x] mockData를 실제 NQNQ 카탈로그(CSV)로 연동 — 이전엔 스타일명을 임의로 지어냈었음(예:
       "H라인 미니스커트" 등 실제 카탈로그에 없는 이름)
-- [x] 홈 탭 — 위젯 카드형 모듈형 대시보드 (추가/제거/드래그 순서변경, localStorage에 순서 저장)
+- [x] 홈 탭 — 위젯 카드형 모듈형 대시보드 (추가/제거/드래그 순서변경, localStorage에 순서 저장), 총 17종
+- [x] 이해관계자 협업 대시보드 Must 티어 (`27. 이해관계자 협업 대시보드 UX-UI 기능명세서`) — 역할 전환
+      스위처, 역할별 위젯·메뉴 필터링, 협업 허브 뼈대(멘션/태스크/알림함), 해시태그 칩
 
 **남은 것**
+- [ ] 27번 문서 Should/Could 티어 — 승인 워크플로우 스텝퍼, 코멘트 스레드, 디자이너/마케터/SCM/경영진
+      전용 신규 화면(트렌드·리뷰, 캠페인성과, RFM, 공급망현황, 재고이관, 통합KPI 등)
+- [ ] TASK/MENTION/ALERT_LOG 3개 신규 엔티티 실제 구현 — 현재는 UI 목업까지만(27번 문서 5절)
 - [ ] Teams 웹사이트 탭 연동 — 프론트 단독으로 불가, RAG 롤 Power Automate 세팅 이후
 - [ ] Power BI 연동, 질문 칩 자유입력 확장 (Could, 우선순위 낮음)
 - [ ] AI 리오더 시뮬레이터 / 알림 카드형 위젯 — 설계만 있음, 4인 회의에서 채택 여부 결정 대기
@@ -46,17 +53,23 @@ src/
   App.jsx                   # 사이드바 + 탭별 페이지 라우팅(로컬 state)
   data/
     mockData.js              # 실제 카탈로그(CSV) 파싱·조인 + 워크플로우/예측 시뮬레이션 레이어
-    nqnq/                     # 실제 NQNQ 카탈로그 CSV 4종(30.DATA/32.nqnq_data에서 복사)
+    nqnq/                     # 실제 NQNQ 카탈로그·매출·반품·트렌드캡슐 CSV(30.DATA/32.nqnq_data에서 복사)
     changelog.js              # 버전 기록 데이터
+    homeWidgets.js            # 홈 위젯 레지스트리 — 위젯별 span·roles 태그
+    roles.js                  # 역할 전환 스위처용 5개 역할 정의 (27번 문서 2-1절)
+    collabTags.js             # 해시태그 칩 5종 정적 목록 (27번 문서 3-2절)
   utils/format.js            # 상대시간·숫자 포맷 유틸
   components/
-    layout/Sidebar.jsx       # 좌측 사이드바 — 로고 + 탭 5개 + 사용자 정보
+    layout/Sidebar.jsx       # 좌측 사이드바 — 로고 + 역할 스위처 + 역할별 탭 + 사용자 정보
     ui/                       # Badge, SummaryCard, RiskBar — 화면 전반에서 재사용
-    home/                     # 홈 뷰 — 위젯 카드형 모듈형 대시보드
+    home/                     # 홈 뷰 — 위젯 카드형 모듈형 대시보드, 역할별 필터링
       HomeView.jsx            #   위젯 순서/표시 state 관리 + localStorage 저장, 드래그앤드롭
       WidgetShell.jsx         #   위젯 카드 공통 껍데기 — 드래그 핸들 + 제목 + 숨기기 버튼
       StatRow.jsx             #   3~4개 소형 지표를 나열하는 공용 레이아웃
-      widgets/                #   위젯 6종 — 각자 mockData에서 직접 데이터를 가져옴
+      widgets/                #   위젯 17종 — 각자 mockData에서 직접 데이터를 가져옴
+    collab/                   # 협업 레이어 (27번 문서) — 데이터 연동 전 UI 뼈대
+      CollabHubView.jsx       #   멘션함/태스크함/알림함 3탭, 예시 1건 + "연동 예정" 안내
+      HashtagPicker.jsx       #   고정 해시태그 5종 다중선택 칩 (DetailDrawer 반려 흐름에 적용)
     approvals/                # 승인이력 뷰 (Must)
       ApprovalsView.jsx       #   요약카드+필터+테이블+드로어 조합, 상태(승인/반려) 로컬 처리
       FilterBar.jsx           #   상태/카테고리/인기도 필터 + SKU 검색
@@ -94,10 +107,21 @@ import하는 부분만 교체하면 됩니다).
   저장되어 새로고침해도 유지됨.
 - **폰트는 Pretendard**로 통일(`public/fonts/`에 4개 굵기 로컬 포함, 시스템에 폰트가
   없는 환경에서도 동일하게 렌더링됨).
-- **브랜드 액센트는 인디고(`--color-accent: #4338CA`) 유지** — 참고 이미지의 민트그린 대신
-  기존 색을 유지한 이유: 이 앱에서 초록은 이미 "승인(Approved)" 상태를 의미하는 시맨틱
-  색상이라, 브랜드 액센트로도 초록을 쓰면 "이 버튼이 상태를 나타내는 건지 그냥 강조인지"
-  헷갈릴 수 있음.
+- **컬러 팔레트 전면 개편 (2026-09-09, 2차 수정으로 확정)** — 사용자가 준 레퍼런스
+  6색 그대로만 사용: Poppy Pink `#F33283` / Punchy Pink `#FF80B4` / Pastel Pink
+  `#FFADD7` / Regular White `#FFFFFF` / Off-White `#F9F9F9` / Regular Black `#000000`.
+  1차 수정 때 임의로 넣었던 웜톤 그레이(#FAF8F6, #656565 등)는 팔레트에 없는 색이라
+  전부 제거 — 회색이 필요한 자리(보더·muted 텍스트·차트 그리드라인)는 새 색을 만들지
+  않고 `rgba(0,0,0,0.08~0.6)`처럼 Regular Black의 투명도만 낮춰서 씀.
+  - 배경(`--color-bg`)은 Off-White `#F9F9F9`, 카드는 Regular White.
+  - 사이드바는 Regular Black, active 탭·유저 아바타는 Poppy Pink.
+  - accent(`#F33283`)는 버튼·배지·포커스링·차트 강조색 전반에, hover는 팔레트에 없는
+    "더 어두운 핑크"를 만드는 대신 Punchy Pink(`#FF80B4`, 더 밝은 톤)로 상태만 구분.
+    secondary 강조는 Pastel Pink(`#FFADD7`).
+  - 승인(초록)/반려(빨강)/대기(주황) 시맨틱 색상, risk_score 앰버 램프는 이 팔레트와
+    무관하게 그대로 유지 — 상태 의미가 있는 색이라 핑크와 안 겹치게 하기 위함.
+  - (참고) zigzag.kr 로고 배지 실측 색은 `#FA6EE3`이지만, 흰 글자 대비가 약해서
+    (WCAG ~2.5:1) 사용자가 준 팔레트의 Poppy Pink(`#F33283`, 대비 ~3.75:1)를 최종 반영.
 - **risk_score 색상**은 초록→빨강이 아니라 단일 색조(연한 amber → 진한 오렌지) 명도
   변화로 처리 — 색맹 접근성 권고 반영.
 - **상태 색상**(대기=amber, 승인=green, 반려=red)은 Alert 우선순위 색상과 통일.

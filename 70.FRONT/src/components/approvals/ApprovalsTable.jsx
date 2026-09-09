@@ -76,7 +76,7 @@ export default function ApprovalsTable({ rows, sort, onSortChange, page, onPageC
               <tr
                 key={r.id}
                 onClick={() => onRowClick(r)}
-                className="cursor-pointer border-b border-[var(--color-border)] last:border-0 hover:bg-[#FAFBFC]"
+                className="cursor-pointer border-b border-[var(--color-border)] last:border-0 hover:bg-[#F9F9F9]"
               >
                 <td className="whitespace-nowrap px-4 py-2.5 font-[var(--font-mono)] text-[13px] text-[var(--color-text)]">
                   {r.sku_code}
@@ -125,7 +125,7 @@ export default function ApprovalsTable({ rows, sort, onSortChange, page, onPageC
           <button
             disabled={page <= 1}
             onClick={() => onPageChange(page - 1)}
-            className="rounded px-2 py-1 disabled:opacity-30 hover:bg-[#F2F4F7]"
+            className="rounded px-2 py-1 disabled:opacity-30 hover:bg-[#F9F9F9]"
           >
             이전
           </button>
@@ -135,7 +135,7 @@ export default function ApprovalsTable({ rows, sort, onSortChange, page, onPageC
           <button
             disabled={page >= totalPages}
             onClick={() => onPageChange(page + 1)}
-            className="rounded px-2 py-1 disabled:opacity-30 hover:bg-[#F2F4F7]"
+            className="rounded px-2 py-1 disabled:opacity-30 hover:bg-[#F9F9F9]"
           >
             다음
           </button>

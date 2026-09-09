@@ -2,6 +2,7 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
 import Badge from "../ui/Badge";
+import HashtagPicker from "../collab/HashtagPicker";
 import { STATUS_LABEL } from "../../data/mockData";
 import { absoluteTime, formatNumber } from "../../utils/format";
 
@@ -14,7 +15,7 @@ function InventoryBar({ inventory }) {
   const seg = (value, color, label) => (
     <div className="flex items-center gap-2 text-xs">
       <span className="w-20 shrink-0 text-[var(--color-text-muted)]">{label}</span>
-      <div className="h-2 flex-1 rounded-full bg-[#F1F2F4]">
+      <div className="h-2 flex-1 rounded-full bg-[#00000014]">
         <div
           className="h-full rounded-full"
           style={{ width: `${Math.min(100, (value / max) * 100)}%`, backgroundColor: color }}
@@ -26,8 +27,8 @@ function InventoryBar({ inventory }) {
 
   return (
     <div className="space-y-2">
-      {seg(available_qty, "#4338CA", "가용재고")}
-      {seg(reserved_qty, "#93A5FD", "예약재고")}
+      {seg(available_qty, "#F33283", "가용재고")}
+      {seg(reserved_qty, "#FF80B4", "예약재고")}
       {seg(safety_stock, "#E08A2E", "안전재고")}
       {seg(reorder_point, "#8A3B0F", "재발주점")}
     </div>
@@ -37,7 +38,17 @@ function InventoryBar({ inventory }) {
 export default function DetailDrawer({ record, onClose, onApprove, onReject }) {
   const [reason, setReason] = useState("");
   const [showRejectInput, setShowRejectInput] = useState(false);
+  const [selectedTags, setSelectedTags] = useState([]);
   if (!record) return null;
+
+  const toggleTag = (tag) =>
+    setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
+
+  const handleRejectConfirm = () => {
+    const withTags = selectedTags.length > 0 ? `${reason} ${selectedTags.join(" ")}` : reason;
+    onReject(record, withTags);
+    setSelectedTags([]);
+  };
 
   const { stockout_urgency, popularity_weight } = record.risk_breakdown;
   const trendData = record.sales_trend.map((v, i) => ({ i, v }));
@@ -53,7 +64,7 @@ export default function DetailDrawer({ record, onClose, onApprove, onReject }) {
             </div>
             <div className="text-base font-semibold text-[var(--color-text)]">{record.style_name}</div>
           </div>
-          <button onClick={onClose} className="rounded p-1 hover:bg-[#F2F4F7]">
+          <button onClick={onClose} className="rounded p-1 hover:bg-[#F9F9F9]">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -76,7 +87,7 @@ export default function DetailDrawer({ record, onClose, onApprove, onReject }) {
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-xs">
                 <span className="w-24 shrink-0 text-[var(--color-text-muted)]">재고소진임박도</span>
-                <div className="h-2 flex-1 rounded-full bg-[#F1F2F4]">
+                <div className="h-2 flex-1 rounded-full bg-[#00000014]">
                   <div
                     className="h-full rounded-full bg-[var(--color-accent)]"
                     style={{ width: `${stockout_urgency * 100}%` }}
@@ -86,7 +97,7 @@ export default function DetailDrawer({ record, onClose, onApprove, onReject }) {
               </div>
               <div className="flex items-center gap-2 text-xs">
                 <span className="w-24 shrink-0 text-[var(--color-text-muted)]">인기도가중치</span>
-                <div className="h-2 flex-1 rounded-full bg-[#F1F2F4]">
+                <div className="h-2 flex-1 rounded-full bg-[#00000014]">
                   <div
                     className="h-full rounded-full bg-[var(--color-accent)]"
                     style={{ width: `${popularity_weight * 100}%` }}
@@ -107,7 +118,7 @@ export default function DetailDrawer({ record, onClose, onApprove, onReject }) {
             <div className="h-10 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={trendData}>
-                  <Line type="monotone" dataKey="v" stroke="#4338CA" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="v" stroke="#F33283" strokeWidth={2} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -146,26 +157,32 @@ export default function DetailDrawer({ record, onClose, onApprove, onReject }) {
         {record.status === "Pending" && (
           <div className="border-t border-[var(--color-border)] px-5 py-4">
             {showRejectInput && (
-              <textarea
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder="반려 사유를 입력하세요"
-                rows={2}
-                className="mb-3 w-full rounded-md border border-[var(--color-border)] px-3 py-2 text-sm placeholder:text-[var(--color-text-faint)]"
-              />
+              <>
+                <HashtagPicker selected={selectedTags} onToggle={toggleTag} />
+                <textarea
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder="반려 사유를 입력하세요"
+                  rows={2}
+                  className="mb-3 w-full rounded-md border border-[var(--color-border)] px-3 py-2 text-sm placeholder:text-[var(--color-text-faint)]"
+                />
+              </>
             )}
             <div className="flex gap-2">
               {showRejectInput ? (
                 <>
                   <button
-                    onClick={() => setShowRejectInput(false)}
-                    className="flex-1 rounded-md border border-[var(--color-border)] py-2 text-sm font-medium text-[var(--color-text-muted)] hover:bg-[#F2F4F7]"
+                    onClick={() => {
+                      setShowRejectInput(false);
+                      setSelectedTags([]);
+                    }}
+                    className="flex-1 rounded-md border border-[var(--color-border)] py-2 text-sm font-medium text-[var(--color-text-muted)] hover:bg-[#F9F9F9]"
                   >
                     취소
                   </button>
                   <button
                     disabled={!reason.trim()}
-                    onClick={() => onReject(record, reason)}
+                    onClick={handleRejectConfirm}
                     className="flex-1 rounded-md bg-[var(--color-red)] py-2 text-sm font-medium text-white disabled:opacity-40"
                   >
                     반려 확정
@@ -175,7 +192,7 @@ export default function DetailDrawer({ record, onClose, onApprove, onReject }) {
                 <>
                   <button
                     onClick={() => setShowRejectInput(true)}
-                    className="flex-1 rounded-md border border-[var(--color-border)] py-2 text-sm font-medium text-[var(--color-text)] hover:bg-[#F2F4F7]"
+                    className="flex-1 rounded-md border border-[var(--color-border)] py-2 text-sm font-medium text-[var(--color-text)] hover:bg-[#F9F9F9]"
                   >
                     반려
                   </button>

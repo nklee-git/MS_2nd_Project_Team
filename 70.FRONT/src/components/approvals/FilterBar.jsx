@@ -14,7 +14,7 @@ export default function FilterBar({ filters, onChange }) {
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3">
       {/* 상태 필터 — 단일 선택 칩 */}
-      <div className="flex items-center gap-1 rounded-lg bg-[#F2F4F7] p-1">
+      <div className="flex items-center gap-1 rounded-lg bg-[#F9F9F9] p-1">
         {STATUS_CHIPS.map((chip) => (
           <button
             key={chip.id}

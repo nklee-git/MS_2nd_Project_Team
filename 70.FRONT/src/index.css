@@ -30,25 +30,31 @@
 }
 
 :root {
-  --color-bg: #F5F6F8;
+  /* 2026-09-09 팔레트 개편 (2차 수정) — 사용자가 준 레퍼런스 6색만 사용:
+     Poppy Pink #F33283 / Punchy Pink #FF80B4 / Pastel Pink #FFADD7 /
+     Regular White #FFFFFF / Off-White #F9F9F9 / Regular Black #000000.
+     1차 수정 때 임의로 넣었던 웜톤 그레이(#FAF8F6, #656565 등)는 팔레트에
+     없는 색이라 전부 제거 — 회색이 필요한 자리(보더·muted 텍스트)는 새 색을
+     만들지 않고 Regular Black을 투명도만 낮춰서 씀. */
+  --color-bg: #F9F9F9;
   --color-surface: #FFFFFF;
-  --color-border: #E4E7EC;
-  --color-border-strong: #D0D5DD;
-  --color-text: #14151A;
-  --color-text-muted: #6B7280;
-  --color-text-faint: #9CA3AF;
+  --color-border: rgba(0, 0, 0, 0.12);
+  --color-border-strong: rgba(0, 0, 0, 0.22);
+  --color-text: #000000;
+  --color-text-muted: rgba(0, 0, 0, 0.6);
+  --color-text-faint: rgba(0, 0, 0, 0.38);
 
-  /* Sidebar (near-black — kept separate from --color-accent so brand-green
-     doesn't collide visually with the 승인(Approved) status green below) */
-  --color-sidebar-bg: #14151A;
-  --color-sidebar-text: #D5D7DD;
-  --color-sidebar-text-muted: #83858E;
-  --color-sidebar-active-bg: #24262E;
-  --color-sidebar-border: #24262E;
+  --color-sidebar-bg: #000000;
+  --color-sidebar-text: #FFFFFF;
+  --color-sidebar-text-muted: rgba(255, 255, 255, 0.55);
+  --color-sidebar-active-bg: #F33283;
+  --color-sidebar-border: rgba(255, 255, 255, 0.14);
 
-  --color-accent: #4338CA;
-  --color-accent-hover: #372DAB;
-  --color-accent-soft: #EEF0FD;
+  /* hover는 팔레트에 없는 "한 톤 어두운 핑크"를 만드는 대신, 팔레트에 이미
+     있는 Punchy Pink(더 밝은 톤)로 상태 변화를 줌. */
+  --color-accent: #F33283;
+  --color-accent-hover: #FF80B4;
+  --color-accent-soft: #FFADD7;
 
   --color-amber: #B45309;
   --color-amber-soft: #FEF3C7;

@@ -12,14 +12,14 @@ export default function TierSalesWidget() {
     <div className="h-40 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={DATA} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-          <CartesianGrid stroke="#EEF0F3" vertical={false} />
-          <XAxis dataKey="tier" tick={{ fontSize: 11, fill: "#98A2B3" }} axisLine={{ stroke: "#E4E7EC" }} tickLine={false} />
-          <YAxis tick={{ fontSize: 11, fill: "#98A2B3" }} axisLine={false} tickLine={false} width={32} />
+          <CartesianGrid stroke="rgba(0,0,0,0.08)" vertical={false} />
+          <XAxis dataKey="tier" tick={{ fontSize: 11, fill: "rgba(0,0,0,0.45)" }} axisLine={{ stroke: "rgba(0,0,0,0.15)" }} tickLine={false} />
+          <YAxis tick={{ fontSize: 11, fill: "rgba(0,0,0,0.45)" }} axisLine={false} tickLine={false} width={32} />
           <Tooltip
-            contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #E4E7EC" }}
+            contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid rgba(0,0,0,0.15)" }}
             formatter={(v) => [v, "4주 예측수요 평균"]}
           />
-          <Bar dataKey="value" radius={[4, 4, 0, 0]} fill="#4338CA" />
+          <Bar dataKey="value" radius={[4, 4, 0, 0]} fill="#F33283" />
         </BarChart>
       </ResponsiveContainer>
     </div>
