@@ -47,11 +47,14 @@ public class ApprovalsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult UpdateStatus(string id, string action, string? rejectionReason,
+    public IActionResult UpdateStatus(string id, string action, string? rejectionReason, string? rejectionReasonDetail,
         string? status, string? category, string? tier, string? q, int page = 1)
     {
         var newStatus = action == "approve" ? "Approved" : "Rejected";
-        _data.UpdateStatus(id, newStatus, approvedBy: "nakyung.l@kakaostyle.com", rejectionReason);
+        var combinedReason = string.IsNullOrWhiteSpace(rejectionReasonDetail)
+            ? rejectionReason
+            : $"{rejectionReason} — 직접입력: {rejectionReasonDetail.Trim()}";
+        _data.UpdateStatus(id, newStatus, approvedBy: "nakyung.l@kakaostyle.com", combinedReason);
 
         return RedirectToAction(nameof(Index), new { status, category, tier, q, page });
     }

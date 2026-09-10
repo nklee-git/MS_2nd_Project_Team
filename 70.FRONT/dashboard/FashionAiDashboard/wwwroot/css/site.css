@@ -836,12 +836,20 @@ a {
   color: var(--color-text-muted);
 }
 
-.reject-reason-wrap select {
+.reject-reason-wrap select,
+.reject-reason-wrap textarea {
   font-family: var(--font-sans);
   font-size: 13px;
   padding: 8px 10px;
   border-radius: 8px;
   border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.reject-reason-wrap textarea {
+  resize: vertical;
+  min-height: 40px;
 }
 
 .drawer-actions {
