@@ -91,3 +91,65 @@ public class SkuError
 
 /// <summary>React SKU_DAILY_SERIES 한 시점 대응</summary>
 public record SkuDailyPoint(string Date, int SkuActual, int SkuPredicted);
+
+/// <summary>monthly_revenue_summary.csv 한 행 (React MONTHLY_REVENUE 대응)</summary>
+public class MonthlyRevenue
+{
+    public string Month { get; set; } = "";
+    public int OrderCount { get; set; }
+    public long Revenue { get; set; }
+    public double RevenueBillion { get; set; }
+}
+
+/// <summary>trend_capsule_performance.csv 한 행 (React TREND_CAPSULES 대응)</summary>
+public class TrendCapsule
+{
+    public string StyleName { get; set; } = "";
+    public string Status { get; set; } = "";
+    public string LaunchDate { get; set; } = "";
+    public int SoldUnits { get; set; }
+    public long Revenue { get; set; }
+}
+
+/// <summary>popularity_tier_performance.csv 기반 베스트셀러 (React BEST_SELLERS 대응)</summary>
+public class BestSeller
+{
+    public string StyleName { get; set; } = "";
+    public string CategoryCode { get; set; } = "";
+    public string PopularityTier { get; set; } = "";
+    public int SoldUnits { get; set; }
+}
+
+/// <summary>returns_sample.csv 기반 반품 사유 분포 (React RETURN_REASON_BREAKDOWN 대응)</summary>
+public class ReturnReasonStat
+{
+    public string Code { get; set; } = "";
+    public string Label { get; set; } = "";
+    public int Count { get; set; }
+    public double Pct { get; set; }
+}
+
+/// <summary>orders_sample.csv 기반 채널별 매출 (표본 500건 집계)</summary>
+public class ChannelRevenue
+{
+    public string ChannelId { get; set; } = "";
+    public int OrderCount { get; set; }
+    public long Revenue { get; set; }
+}
+
+/// <summary>데이터조회 뷰의 질문 칩 결과 (React QUERY_CHIPS 대응)</summary>
+public class QueryChip
+{
+    public string Id { get; set; } = "";
+    public string Label { get; set; } = "";
+    public string Type { get; set; } = ""; // bar | table
+    public List<(string Category, double Value)> BarResult { get; set; } = new();
+}
+
+/// <summary>버전 기록 한 항목 (React CHANGELOG 대응)</summary>
+public class ChangelogEntry
+{
+    public string Version { get; set; } = "";
+    public string Date { get; set; } = "";
+    public List<string> Changes { get; set; } = new();
+}

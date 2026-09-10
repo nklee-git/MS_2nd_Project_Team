@@ -60,6 +60,11 @@
   --color-red-border: #FECACA;
 
   --font-sans: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, "Malgun Gothic", "Apple SD Gothic Neo", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Roboto Mono", Menlo, Consolas, monospace;
+}
+
+.mono {
+  font-family: var(--font-mono);
 }
 
 * {
@@ -81,6 +86,10 @@ body {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+[hidden] {
+  display: none !important;
 }
 
 ::selection {
@@ -298,6 +307,226 @@ a {
   font-size: 14px;
 }
 
+/* ---------- Widget grid (홈) ---------- */
+.widget-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.rank-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rank-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 8px;
+}
+
+.rank-list li:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.rank-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.rank-meta {
+  color: var(--color-text-faint);
+  font-size: 11.5px;
+  flex-shrink: 0;
+}
+
+.rank-value {
+  flex-shrink: 0;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.bar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: 100px 1fr 60px;
+  gap: 10px;
+  align-items: center;
+  font-size: 12.5px;
+}
+
+.bar-label {
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bar-label.mono {
+  font-family: var(--font-mono);
+}
+
+.bar-track {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--color-bg);
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-accent);
+}
+
+.bar-fill.amber {
+  background: var(--color-amber);
+}
+
+.bar-value {
+  text-align: right;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.data-table.compact th,
+.data-table.compact td {
+  padding: 6px 10px;
+  font-size: 12.5px;
+}
+
+/* ---------- Query chips ---------- */
+.section-note {
+  color: var(--color-text-muted);
+  font-size: 13.5px;
+  margin: -12px 0 18px;
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.chip {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.chip-active {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+}
+
+/* ---------- Collab tabs ---------- */
+.tab-pill-row {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--color-bg);
+  margin-bottom: 18px;
+}
+
+.tab-pill {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 7px;
+  color: var(--color-text-muted);
+}
+
+.tab-pill-active {
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.example-row {
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+.pending-integration {
+  margin-top: 16px;
+  border: 1px dashed var(--color-border-strong);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+}
+
+/* ---------- Changelog ---------- */
+.changelog-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 720px;
+}
+
+.changelog-entry {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  border-radius: 14px;
+  padding: 18px 20px;
+}
+
+.changelog-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.version-tag {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 600;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  padding: 2px 9px;
+  border-radius: 999px;
+}
+
+.changelog-date {
+  font-size: 12px;
+  color: var(--color-text-faint);
+}
+
+.changelog-list {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13.5px;
+  color: var(--color-text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 /* ---------- Table ---------- */
 .data-table {
   width: 100%;
@@ -344,4 +573,198 @@ a {
   background: var(--color-red-soft);
   color: var(--color-red);
   border: 1px solid var(--color-red-border);
+}
+
+/* ---------- Filter bar ---------- */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.filter-bar select,
+.filter-bar input[type="text"] {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.filter-bar input[type="text"] {
+  min-width: 200px;
+}
+
+.btn-primary,
+.btn-ghost,
+.btn-approve,
+.btn-reject {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: var(--color-border);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* ---------- Table rows ---------- */
+.clickable-row {
+  cursor: pointer;
+}
+
+.clickable-row:hover {
+  background: var(--color-bg);
+}
+
+/* ---------- Pagination ---------- */
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.page-links a {
+  margin-left: 12px;
+  color: var(--color-accent);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+/* ---------- Drawer ---------- */
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 40;
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(420px, 100vw);
+  background: var(--color-surface);
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.15);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  background: var(--color-surface);
+}
+
+.drawer-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.drawer-close {
+  border: none;
+  background: transparent;
+  font-size: 16px;
+  cursor: pointer;
+  color: var(--color-text-muted);
+}
+
+.drawer-body {
+  padding: 20px;
+}
+
+.drawer-body h4 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-faint);
+  margin: 22px 0 10px;
+}
+
+.drawer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 6px 0;
+  font-size: 13.5px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.drawer-row span {
+  color: var(--color-text-muted);
+}
+
+.sparkline {
+  width: 100%;
+  height: 60px;
+  display: block;
+}
+
+.reject-reason-wrap {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.reject-reason-wrap label {
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+}
+
+.reject-reason-wrap select {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+}
+
+.drawer-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.btn-approve {
+  flex: 1;
+  background: var(--color-green);
+  color: #fff;
+}
+
+.btn-reject {
+  flex: 1;
+  background: var(--color-red-soft);
+  color: var(--color-red);
+  border-color: var(--color-red-border);
 }

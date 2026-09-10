@@ -55,6 +55,21 @@ public class SampleDataService
     public ForecastSummary ForecastSummaryInfo { get; }
     public List<SkuError> SkuErrors { get; }
     public Dictionary<string, List<SkuDailyPoint>> SkuDailySeries { get; }
+    public List<MonthlyRevenue> MonthlyRevenues { get; }
+    public List<TrendCapsule> TrendCapsules { get; }
+    public List<BestSeller> BestSellers { get; }
+    public List<ReturnReasonStat> ReturnReasonBreakdown { get; }
+    public List<ChannelRevenue> ChannelRevenues { get; }
+    public List<QueryChip> QueryChips { get; }
+
+    private static readonly Dictionary<string, string> ReasonLabels = new()
+    {
+        ["R01"] = "사이즈 안 맞음",
+        ["R02"] = "색상/이미지 상이",
+        ["R03"] = "단순 변심",
+        ["R04"] = "불량/하자",
+        ["R05"] = "쇼룸 체험 후 사이즈 변경",
+    };
 
     public SampleDataService(IWebHostEnvironment env)
     {
@@ -116,7 +131,114 @@ public class SampleDataService
         ForecastSummaryInfo = BuildForecastSummary();
         SkuErrors = BuildSkuErrors(rand);
         SkuDailySeries = BuildSkuDailySeries(rand);
+
+        // ---- 홈 위젯 / 데이터조회용 추가 데이터 ----
+        MonthlyRevenues = CsvReader.Read(Path.Combine(dir, "monthly_revenue_summary.csv"))
+            .Select(r => new MonthlyRevenue
+            {
+                Month = r.ToStr("month"),
+                OrderCount = r.ToInt("order_count"),
+                Revenue = (long)r.ToDouble("revenue"),
+                RevenueBillion = r.ToDouble("revenue_억"),
+            })
+            .OrderBy(m => m.Month)
+            .ToList();
+
+        TrendCapsules = CsvReader.Read(Path.Combine(dir, "trend_capsule_performance.csv"))
+            .Select(r => new TrendCapsule
+            {
+                StyleName = r.ToStr("style_name"),
+                Status = r.ToStr("status"),
+                LaunchDate = r.ToStr("launch_date"),
+                SoldUnits = r.ToInt("sold_units"),
+                Revenue = (long)r.ToDouble("revenue"),
+            })
+            .OrderByDescending(t => t.SoldUnits)
+            .ToList();
+
+        BestSellers = performanceRows
+            .Select(r => new BestSeller
+            {
+                StyleName = r.ToStr("style_name"),
+                CategoryCode = r.ToStr("category_code"),
+                PopularityTier = r.ToStr("popularity_tier"),
+                SoldUnits = r.ToInt("sold_units"),
+            })
+            .OrderByDescending(b => b.SoldUnits)
+            .Take(6)
+            .ToList();
+
+        var returnRows = CsvReader.Read(Path.Combine(dir, "returns_sample.csv"));
+        var returnTotal = returnRows.Count;
+        ReturnReasonBreakdown = ReasonLabels.Select(kv =>
+        {
+            var count = returnRows.Count(r => r.ToStr("reason_code") == kv.Key);
+            return new ReturnReasonStat
+            {
+                Code = kv.Key,
+                Label = kv.Value,
+                Count = count,
+                Pct = returnTotal == 0 ? 0 : Math.Round((double)count / returnTotal * 1000) / 10,
+            };
+        }).ToList();
+
+        var orderRows = CsvReader.Read(Path.Combine(dir, "orders_sample.csv"));
+        ChannelRevenues = orderRows
+            .GroupBy(r => r.ToStr("channel_id"))
+            .Select(g => new ChannelRevenue
+            {
+                ChannelId = g.Key,
+                OrderCount = g.Count(),
+                Revenue = (long)g.Sum(r => r.ToDouble("total_amount")),
+            })
+            .OrderByDescending(c => c.Revenue)
+            .ToList();
+
+        QueryChips = BuildQueryChips();
     }
+
+    private List<QueryChip> BuildQueryChips()
+    {
+        var tierAvg = new[] { "HERO", "STEADY", "NICHE" }.Select(tier =>
+        {
+            var recs = ReorderRecommendations.Where(r => r.PopularityTier == tier).ToList();
+            var avg = recs.Count == 0 ? 0 : recs.Average(r => r.PredictedDemand);
+            return (Category: tier, Value: Math.Round(avg, 1));
+        }).ToList();
+
+        return new List<QueryChip>
+        {
+            new()
+            {
+                Id = "top-risk-sku",
+                Label = "가장 위험한 SKU 5개는?",
+                Type = "table",
+            },
+            new()
+            {
+                Id = "revenue-by-channel",
+                Label = "채널별 매출은? (표본 500건)",
+                Type = "bar",
+                BarResult = ChannelRevenues.Select(c => (Category: c.ChannelId, Value: (double)c.Revenue)).ToList(),
+            },
+            new()
+            {
+                Id = "avg-demand-by-tier",
+                Label = "인기도 티어별 평균 예측수요는?",
+                Type = "bar",
+                BarResult = tierAvg,
+            },
+            new()
+            {
+                Id = "returns-by-reason",
+                Label = "반품 사유 분포는?",
+                Type = "bar",
+                BarResult = ReturnReasonBreakdown.Select(r => (Category: r.Label, Value: (double)r.Count)).ToList(),
+            },
+        };
+    }
+
+    public List<ReorderRecommendation> TopRiskSkus => ReorderRecommendations.OrderByDescending(r => r.RiskScore).Take(5).ToList();
 
     private static string DateStr(int offset) => CutoffDate.AddDays(offset).ToString("yyyy-MM-dd");
 
@@ -266,6 +388,27 @@ public class SampleDataService
             i++;
         }
         return result;
+    }
+
+    private readonly object _statusLock = new();
+
+    /// <summary>
+    /// 승인/반려 처리 — 지금은 인메모리 상태만 바꾸지만(재시작하면 초기화),
+    /// 나중에 Dataverse 연동 시 이 메서드 내부만 Web API 호출로 교체하면 됨.
+    /// </summary>
+    public bool UpdateStatus(string id, string newStatus, string? approvedBy, string? rejectionReason)
+    {
+        lock (_statusLock)
+        {
+            var rec = ReorderRecommendations.FirstOrDefault(r => r.Id == id);
+            if (rec == null) return false;
+
+            rec.Status = newStatus;
+            rec.ResolvedAt = DateTime.Now;
+            rec.ApprovedBy = newStatus == "Approved" ? approvedBy : null;
+            rec.RejectionReason = newStatus == "Rejected" ? rejectionReason : null;
+            return true;
+        }
     }
 
     private static string WeightedStatus(Mulberry32 rand)

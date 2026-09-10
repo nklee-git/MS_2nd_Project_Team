@@ -1,16 +1,57 @@
-@model List<FashionAiDashboard.Models.ReorderRecommendation>
+@using System.Text.Json
+@model FashionAiDashboard.Models.ApprovalsViewModel
 @{
     ViewData["Title"] = "승인이력";
     string StatusLabel(string s) => s switch { "Pending" => "대기", "Approved" => "승인", "Rejected" => "반려", _ => s };
+
+    string BuildQuery(int page) => $"?status={Model.Status}&category={Model.Category}&tier={Model.Tier}&q={Uri.EscapeDataString(Model.Q ?? "")}&page={page}";
 }
 
 <h1 class="page-title">승인이력</h1>
+
+<div class="stat-row">
+    <div class="stat-card">
+        <div class="stat-card-label">대기중</div>
+        <div class="stat-card-value"><span>@Model.PendingCount</span><span class="stat-card-unit">건</span></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-label">승인</div>
+        <div class="stat-card-value tone-good"><span>@Model.ApprovedCount</span><span class="stat-card-unit">건</span></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-label">반려</div>
+        <div class="stat-card-value tone-bad"><span>@Model.RejectedCount</span><span class="stat-card-unit">건</span></div>
+    </div>
+</div>
+
+<form method="get" class="filter-bar">
+    <select name="status">
+        <option value="">전체 상태</option>
+        <option value="Pending" selected="@(Model.Status == "Pending")">대기</option>
+        <option value="Approved" selected="@(Model.Status == "Approved")">승인</option>
+        <option value="Rejected" selected="@(Model.Status == "Rejected")">반려</option>
+    </select>
+    <select name="category">
+        <option value="">전체 카테고리</option>
+        @foreach (var c in FashionAiDashboard.Services.SampleDataService.Categories)
+        {
+            <option value="@c.Code" selected="@(Model.Category == c.Code)">@c.Label</option>
+        }
+    </select>
+    <select name="tier">
+        <option value="">전체 인기도</option>
+        <option value="HERO" selected="@(Model.Tier == "HERO")">HERO</option>
+        <option value="STEADY" selected="@(Model.Tier == "STEADY")">STEADY</option>
+        <option value="NICHE" selected="@(Model.Tier == "NICHE")">NICHE</option>
+    </select>
+    <input type="text" name="q" value="@Model.Q" placeholder="SKU 또는 스타일명 검색" />
+    <button type="submit" class="btn-primary">필터 적용</button>
+    <a href="@Url.Action("Index")" class="btn-ghost">초기화</a>
+</form>
+
 <div class="widget-card">
-    <p class="placeholder-note" style="margin-bottom:16px;">
-        risk_score 상위 20건 (샘플 데이터 — 30.DATA/32.nqnq_data 실 카탈로그 기반, 워크플로우 상태는 시뮬레이션). 필터·상세 드로어는 다음 단계.
-    </p>
     <div style="overflow-x:auto;">
-        <table class="data-table">
+        <table class="data-table" id="approvalsTable">
             <thead>
                 <tr>
                     <th>SKU</th>
@@ -23,9 +64,9 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var r in Model)
+                @foreach (var r in Model.Rows)
                 {
-                    <tr>
+                    <tr class="clickable-row" data-detail="@JsonSerializer.Serialize(r)">
                         <td>@r.SkuCode</td>
                         <td>@r.StyleName</td>
                         <td>@r.PopularityTier</td>
@@ -38,4 +79,152 @@
             </tbody>
         </table>
     </div>
+
+    @if (Model.Rows.Count == 0)
+    {
+        <p class="placeholder-note" style="margin-top:16px;">조건에 맞는 발주추천이 없습니다.</p>
+    }
+
+    <div class="pagination">
+        <span class="page-info">전체 @Model.TotalCount 건 · @Model.Page / @Model.TotalPages 페이지</span>
+        <div class="page-links">
+            @if (Model.Page > 1)
+            {
+                <a href="@BuildQuery(Model.Page - 1)">← 이전</a>
+            }
+            @if (Model.Page < Model.TotalPages)
+            {
+                <a href="@BuildQuery(Model.Page + 1)">다음 →</a>
+            }
+        </div>
+    </div>
 </div>
+
+<!-- 상세 드로어 -->
+<div id="drawerOverlay" class="drawer-overlay" hidden></div>
+<aside id="drawer" class="drawer" hidden>
+    <div class="drawer-header">
+        <h3 id="drawerSku"></h3>
+        <button type="button" id="drawerClose" class="drawer-close" aria-label="닫기">✕</button>
+    </div>
+    <div class="drawer-body">
+        <div class="drawer-row"><span>스타일</span><strong id="drawerStyle"></strong></div>
+        <div class="drawer-row"><span>카테고리 / 사이즈 / 컬러</span><strong id="drawerAttrs"></strong></div>
+        <div class="drawer-row"><span>인기도 티어</span><strong id="drawerTier"></strong></div>
+
+        <h4>risk_score 근거</h4>
+        <div class="drawer-row"><span>risk_score</span><strong id="drawerRisk"></strong></div>
+        <div class="drawer-row"><span>재고소진임박도</span><strong id="drawerUrgency"></strong></div>
+        <div class="drawer-row"><span>인기도가중치</span><strong id="drawerWeight"></strong></div>
+
+        <h4>재고 현황</h4>
+        <div class="drawer-row"><span>가용재고 / 예약재고</span><strong id="drawerInv1"></strong></div>
+        <div class="drawer-row"><span>안전재고 / 재발주점</span><strong id="drawerInv2"></strong></div>
+
+        <h4>최근 14일 판매 추이</h4>
+        <svg id="drawerSpark" viewBox="0 0 280 60" class="sparkline"></svg>
+
+        <h4>발주 추천</h4>
+        <div class="drawer-row"><span>예측 수요</span><strong id="drawerDemand"></strong></div>
+        <div class="drawer-row"><span>추천 발주량</span><strong id="drawerQty"></strong></div>
+        <div class="drawer-row"><span>현재 상태</span><strong id="drawerStatus"></strong></div>
+        <div class="drawer-row" id="drawerResolvedRow" hidden><span id="drawerResolvedLabel"></span><strong id="drawerResolvedValue"></strong></div>
+
+        <form method="post" asp-action="UpdateStatus" id="drawerForm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" id="drawerId" />
+            <input type="hidden" name="status" value="@Model.Status" />
+            <input type="hidden" name="category" value="@Model.Category" />
+            <input type="hidden" name="tier" value="@Model.Tier" />
+            <input type="hidden" name="q" value="@Model.Q" />
+            <input type="hidden" name="page" value="@Model.Page" />
+
+            <div id="rejectReasonWrap" class="reject-reason-wrap" hidden>
+                <label for="rejectionReason">반려 사유</label>
+                <select name="rejectionReason" id="rejectionReason">
+                    <option value="이번 시즌 컬러 단종 예정 — 재발주 보류">이번 시즌 컬러 단종 예정</option>
+                    <option value="재고 과다 — 기존 재고 소진 후 재검토">재고 과다</option>
+                    <option value="예산 초과 — 다음 분기로 이월">예산 초과</option>
+                    <option value="수요 예측 신뢰도 낮음 — 데이터 보강 필요">수요 예측 신뢰도 낮음</option>
+                </select>
+            </div>
+
+            <div class="drawer-actions" id="drawerActionButtons">
+                <button type="submit" name="action" value="reject" id="btnReject" class="btn-reject">반려</button>
+                <button type="submit" name="action" value="approve" id="btnApprove" class="btn-approve">승인</button>
+            </div>
+            <p id="drawerAlreadyResolved" class="placeholder-note" hidden>이미 처리된 발주추천입니다.</p>
+        </form>
+    </div>
+</aside>
+
+@section Scripts {
+    <script>
+        const drawer = document.getElementById('drawer');
+        const overlay = document.getElementById('drawerOverlay');
+        const statusLabel = { Pending: '대기', Approved: '승인', Rejected: '반려' };
+
+        function openDrawer(detail) {
+            document.getElementById('drawerSku').textContent = detail.SkuCode;
+            document.getElementById('drawerStyle').textContent = detail.StyleName;
+            document.getElementById('drawerAttrs').textContent = `${detail.CategoryCode} / ${detail.Size} / ${detail.ColorCode}`;
+            document.getElementById('drawerTier').textContent = detail.PopularityTier;
+            document.getElementById('drawerRisk').textContent = detail.RiskScore.toFixed(2);
+            document.getElementById('drawerUrgency').textContent = detail.StockoutUrgency.toFixed(2);
+            document.getElementById('drawerWeight').textContent = detail.PopularityWeight.toFixed(2);
+            document.getElementById('drawerInv1').textContent = `${detail.AvailableQty.toLocaleString()} / ${detail.ReservedQty.toLocaleString()}`;
+            document.getElementById('drawerInv2').textContent = `${detail.SafetyStock.toLocaleString()} / ${detail.ReorderPoint.toLocaleString()}`;
+            document.getElementById('drawerDemand').textContent = detail.PredictedDemand.toLocaleString() + '개';
+            document.getElementById('drawerQty').textContent = detail.RecommendedQty.toLocaleString() + '개';
+            document.getElementById('drawerStatus').textContent = statusLabel[detail.Status] ?? detail.Status;
+            document.getElementById('drawerId').value = detail.Id;
+
+            // sparkline
+            const trend = detail.SalesTrend || [];
+            const max = Math.max(1, ...trend);
+            const pts = trend.map((v, i) => `${(i / (trend.length - 1)) * 280},${58 - (v / max) * 54}`).join(' ');
+            document.getElementById('drawerSpark').innerHTML =
+                `<polyline points="${pts}" fill="none" stroke="var(--color-accent)" stroke-width="2" />`;
+
+            const resolvedRow = document.getElementById('drawerResolvedRow');
+            const actions = document.getElementById('drawerActionButtons');
+            const already = document.getElementById('drawerAlreadyResolved');
+            if (detail.Status === 'Pending') {
+                resolvedRow.hidden = true;
+                actions.hidden = false;
+                already.hidden = true;
+            } else {
+                document.getElementById('drawerResolvedLabel').textContent = detail.Status === 'Approved' ? '승인자' : '반려 사유';
+                document.getElementById('drawerResolvedValue').textContent = detail.Status === 'Approved' ? (detail.ApprovedBy ?? '-') : (detail.RejectionReason ?? '-');
+                resolvedRow.hidden = false;
+                actions.hidden = true;
+                already.hidden = false;
+            }
+            document.getElementById('rejectReasonWrap').hidden = true;
+
+            drawer.hidden = false;
+            overlay.hidden = false;
+        }
+
+        function closeDrawer() {
+            drawer.hidden = true;
+            overlay.hidden = true;
+        }
+
+        document.querySelectorAll('#approvalsTable .clickable-row').forEach(row => {
+            row.addEventListener('click', () => openDrawer(JSON.parse(row.dataset.detail)));
+        });
+        document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+        overlay.addEventListener('click', closeDrawer);
+
+        // 반려 버튼 첫 클릭 = 사유 선택 노출, 두 번째(사유 선택 후) 클릭 = 실제 제출
+        const btnReject = document.getElementById('btnReject');
+        const reasonWrap = document.getElementById('rejectReasonWrap');
+        btnReject.addEventListener('click', (e) => {
+            if (reasonWrap.hidden) {
+                e.preventDefault();
+                reasonWrap.hidden = false;
+            }
+        });
+    </script>
+}

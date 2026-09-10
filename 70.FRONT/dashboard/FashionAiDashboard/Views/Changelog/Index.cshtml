@@ -1,8 +1,24 @@
+@model List<FashionAiDashboard.Models.ChangelogEntry>
 @{
     ViewData["Title"] = "버전 기록";
 }
 
 <h1 class="page-title">버전 기록</h1>
-<div class="widget-card">
-    <p class="placeholder-note">준비중 — 버전별 변경 이력 타임라인이 여기 들어갑니다.</p>
+
+<div class="changelog-timeline">
+    @foreach (var entry in Model)
+    {
+        <div class="changelog-entry">
+            <div class="changelog-head">
+                <span class="version-tag">v@(entry.Version)</span>
+                <span class="changelog-date">@entry.Date</span>
+            </div>
+            <ul class="changelog-list">
+                @foreach (var change in entry.Changes)
+                {
+                    <li>@change</li>
+                }
+            </ul>
+        </div>
+    }
 </div>

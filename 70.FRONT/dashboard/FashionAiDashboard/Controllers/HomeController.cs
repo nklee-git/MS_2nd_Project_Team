@@ -37,6 +37,16 @@ public class HomeController : Controller
                 new() { Label = "전체 발주추천", Value = recs.Count.ToString(), Unit = "건" },
             },
         };
+
+        ViewBag.BestSellers = _data.BestSellers;
+        ViewBag.TrendCapsules = _data.TrendCapsules.Take(5).ToList();
+        ViewBag.ReturnReasons = _data.ReturnReasonBreakdown;
+        ViewBag.MonthlyRevenues = _data.MonthlyRevenues.TakeLast(6).ToList();
+        ViewBag.CategoryRisk = FashionAiDashboard.Services.SampleDataService.Categories
+            .Select(c => new { c.Code, c.Label, Count = recs.Count(r => r.CategoryCode == c.Code && r.Status == "Pending") })
+            .OrderByDescending(c => c.Count)
+            .ToList();
+
         return View(model);
     }
 

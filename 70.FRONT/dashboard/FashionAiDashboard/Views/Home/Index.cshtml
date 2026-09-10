@@ -1,6 +1,17 @@
 @model FashionAiDashboard.Models.HomeStatsViewModel
+@using FashionAiDashboard.Models
 @{
     ViewData["Title"] = "홈";
+    var bestSellers = (List<BestSeller>)ViewBag.BestSellers;
+    var trendCapsules = (List<TrendCapsule>)ViewBag.TrendCapsules;
+    var returnReasons = (List<ReturnReasonStat>)ViewBag.ReturnReasons;
+    var monthlyRevenues = (List<MonthlyRevenue>)ViewBag.MonthlyRevenues;
+    var categoryRisk = ViewBag.CategoryRisk;
+
+    var maxReturn = returnReasons.Count > 0 ? returnReasons.Max(r => r.Count) : 1;
+    var maxRevenue = monthlyRevenues.Count > 0 ? monthlyRevenues.Max(m => m.RevenueBillion) : 1;
+    int maxCatRisk = 1;
+    foreach (var c in categoryRisk) { if ((int)c.Count > maxCatRisk) maxCatRisk = (int)c.Count; }
 }
 
 <h1 class="page-title">홈</h1>
@@ -17,18 +28,83 @@
                     <span class="stat-card-unit">@card.Unit</span>
                 }
             </div>
-            @if (!string.IsNullOrEmpty(card.Caption))
-            {
-                <div class="stat-card-caption">@card.Caption</div>
-            }
         </div>
     }
 </div>
 
-<div class="widget-card">
-    <h2 class="widget-card-title">위젯 영역 (준비중)</h2>
-    <p class="placeholder-note">
-        원래 React 버전엔 베스트셀러·재고 위험·예측 미니 위젯 등 17종이 카드형으로 배치돼 있었습니다.
-        데이터 연동 방식(Dataverse Web API 직접 호출 vs 별도 C# 백엔드)이 정해지는 대로 위젯을 하나씩 이식할 예정입니다.
-    </p>
+<div class="widget-grid">
+
+    <div class="widget-card">
+        <h2 class="widget-card-title">베스트셀러 TOP 6</h2>
+        <ol class="rank-list">
+            @foreach (var b in bestSellers)
+            {
+                <li>
+                    <span class="rank-name">@b.StyleName</span>
+                    <span class="rank-meta">@b.CategoryCode · @b.PopularityTier</span>
+                    <span class="rank-value">@b.SoldUnits.ToString("N0")개</span>
+                </li>
+            }
+        </ol>
+    </div>
+
+    <div class="widget-card">
+        <h2 class="widget-card-title">카테고리별 재고 위험 (대기중)</h2>
+        <div class="bar-list">
+            @foreach (var c in categoryRisk)
+            {
+                <div class="bar-row">
+                    <span class="bar-label">@c.Label</span>
+                    <div class="bar-track"><div class="bar-fill" style="width:@((int)c.Count * 100 / maxCatRisk)%"></div></div>
+                    <span class="bar-value">@c.Count</span>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="widget-card">
+        <h2 class="widget-card-title">트렌드캡슐 현황</h2>
+        <table class="data-table compact">
+            <thead><tr><th>스타일</th><th>상태</th><th>판매량</th></tr></thead>
+            <tbody>
+                @foreach (var t in trendCapsules)
+                {
+                    <tr>
+                        <td>@t.StyleName</td>
+                        <td>@t.Status</td>
+                        <td>@t.SoldUnits.ToString("N0")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="widget-card">
+        <h2 class="widget-card-title">반품 사유 분포</h2>
+        <div class="bar-list">
+            @foreach (var r in returnReasons)
+            {
+                <div class="bar-row">
+                    <span class="bar-label">@r.Label</span>
+                    <div class="bar-track"><div class="bar-fill amber" style="width:@(r.Count * 100 / maxReturn)%"></div></div>
+                    <span class="bar-value">@r.Pct.ToString("F1")%</span>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="widget-card" style="grid-column: span 2;">
+        <h2 class="widget-card-title">최근 6개월 매출 추이</h2>
+        <div class="bar-list">
+            @foreach (var m in monthlyRevenues)
+            {
+                <div class="bar-row">
+                    <span class="bar-label mono">@m.Month</span>
+                    <div class="bar-track"><div class="bar-fill" style="width:@(m.RevenueBillion * 100 / maxRevenue)%"></div></div>
+                    <span class="bar-value">@m.RevenueBillion.ToString("F1")억</span>
+                </div>
+            }
+        </div>
+    </div>
+
 </div>

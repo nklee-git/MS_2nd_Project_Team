@@ -1,8 +1,56 @@
+@using FashionAiDashboard.Models
 @{
     ViewData["Title"] = "데이터 조회";
+    var chips = (List<QueryChip>)ViewBag.Chips;
+    var selected = (QueryChip)ViewBag.Selected;
+    var topRisk = (List<ReorderRecommendation>)ViewBag.TopRiskSkus;
+    var maxVal = selected.BarResult.Count > 0 ? selected.BarResult.Max(b => b.Value) : 1;
 }
 
 <h1 class="page-title">데이터 조회</h1>
+<p class="section-note">질문을 클릭하면 실 카탈로그·주문 표본 데이터로 즉시 답을 보여줍니다.</p>
+
+<div class="chip-row">
+    @foreach (var c in chips)
+    {
+        <a href="@Url.Action("Index", new { chip = c.Id })" class="chip @(c.Id == selected.Id ? "chip-active" : "")">@c.Label</a>
+    }
+</div>
+
 <div class="widget-card">
-    <p class="placeholder-note">준비중 — 질문 칩 4종 + 결과 테이블/CSV 다운로드가 여기 들어갑니다.</p>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h2 class="widget-card-title" style="margin:0;">@selected.Label</h2>
+        <a href="@Url.Action("ExportCsv", new { chip = selected.Id })" class="btn-ghost">CSV 다운로드</a>
+    </div>
+
+    @if (selected.Id == "top-risk-sku")
+    {
+        <table class="data-table">
+            <thead><tr><th>SKU</th><th>스타일</th><th>risk_score</th><th>추천발주량</th></tr></thead>
+            <tbody>
+                @foreach (var r in topRisk)
+                {
+                    <tr>
+                        <td>@r.SkuCode</td>
+                        <td>@r.StyleName</td>
+                        <td>@r.RiskScore.ToString("F2")</td>
+                        <td>@r.RecommendedQty</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <div class="bar-list">
+            @foreach (var (category, value) in selected.BarResult)
+            {
+                <div class="bar-row">
+                    <span class="bar-label">@category</span>
+                    <div class="bar-track"><div class="bar-fill" style="width:@(maxVal == 0 ? 0 : value * 100 / maxVal)%"></div></div>
+                    <span class="bar-value">@value.ToString("N0")</span>
+                </div>
+            }
+        </div>
+    }
 </div>
