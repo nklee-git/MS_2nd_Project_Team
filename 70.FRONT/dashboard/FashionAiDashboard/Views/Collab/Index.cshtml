@@ -1,8 +1,11 @@
 @using FashionAiDashboard.Controllers
+@using FashionAiDashboard.Models
 @{
     ViewData["Title"] = "협업 허브";
     var tab = (string)ViewBag.Tab;
     var example = (CollabExample)ViewBag.Example;
+    var replies = (List<CollabReply>)ViewBag.Replies;
+    var relatedRec = (ReorderRecommendation?)ViewBag.RelatedRec;
 
     var tabs = new (string Id, string Label)[] { ("mention", "멘션함"), ("task", "태스크함"), ("alert", "알림함") };
 }
@@ -18,8 +21,8 @@
 
 <div class="widget-card">
     <div style="margin-bottom:14px;">
-        <span class="status-badge status-approved">예시 1건</span>
-        <span class="placeholder-note" style="margin-left:8px; font-size:12px;">실제 데이터 연동 전 — 화면 레이아웃 참고용</span>
+        <span class="status-badge status-approved">Teams 연동 예시 1건</span>
+        <span class="placeholder-note" style="margin-left:8px; font-size:12px;">53. Virtual Team Profiles 3-4절 프로세스 목업 — 답장은 이 세션 동안만 저장됨</span>
     </div>
 
     <div class="example-row">
@@ -30,10 +33,51 @@
         <p style="margin:6px 0 0; color:var(--color-text-muted); font-size:13.5px;">@example.Text</p>
     </div>
 
-    <div class="pending-integration">
-        <p style="margin:0; font-weight:500;">연동 예정</p>
-        <p style="margin:4px 0 0; font-size:12.5px; color:var(--color-text-faint);">
-            <code class="mono">@example.Entity</code> 엔티티 확장 후 실제 목록으로 교체 — 71. Entity Definitions & Data Dictionary 5절 참고
-        </p>
-    </div>
+    @if (relatedRec != null)
+    {
+        <div class="related-doc-card">
+            <div class="related-doc-head">
+                <span class="related-doc-title">📎 관련 문서 — 발주추천</span>
+                <a asp-controller="Approvals" asp-action="Index" asp-route-q="@relatedRec.SkuCode" class="btn-ghost" style="padding:3px 10px; font-size:12px;">승인함에서 보기 →</a>
+            </div>
+            <div class="related-doc-body">
+                <span class="related-doc-sku mono">@relatedRec.SkuCode</span>
+                <span class="related-doc-meta">@relatedRec.StyleName</span>
+                <span class="status-badge status-@relatedRec.Status.ToLower()">@relatedRec.Status</span>
+                <span class="related-doc-meta">위험도 @relatedRec.RiskScore.ToString("0.0")</span>
+                <span class="related-doc-meta">권장발주 @(relatedRec.RecommendedQty)개</span>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="pending-integration">
+            <p style="margin:0; font-weight:500;">관련 문서 없음</p>
+            <p style="margin:4px 0 0; font-size:12.5px; color:var(--color-text-faint);">
+                <code class="mono">@example.Entity</code> 엔티티 확장 후 실제 목록으로 교체 — 71. Entity Definitions &amp; Data Dictionary 5절 참고
+            </p>
+        </div>
+    }
+
+    @if (replies.Count > 0)
+    {
+        <div class="reply-thread">
+            @foreach (var r in replies)
+            {
+                <div class="reply-item">
+                    <div class="reply-item-head">
+                        <span class="reply-item-from">@r.From</span>
+                        <span class="reply-item-time">@r.Time</span>
+                    </div>
+                    <p class="reply-item-text">@r.Text</p>
+                </div>
+            }
+        </div>
+    }
+
+    <form asp-controller="Collab" asp-action="Reply" method="post" class="reply-form">
+        <input type="hidden" name="tab" value="@tab" />
+        <textarea name="text" placeholder="답장을 입력하면 Power Automate를 통해 Teams 스레드로 전송됩니다 (목업)" rows="1"></textarea>
+        <button type="submit" class="btn-primary">답장</button>
+    </form>
 </div>
