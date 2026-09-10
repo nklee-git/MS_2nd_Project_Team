@@ -51,7 +51,7 @@ public class ApprovalsController : Controller
         string? status, string? category, string? tier, string? q, int page = 1)
     {
         var newStatus = action == "approve" ? "Approved" : "Rejected";
-        _data.UpdateStatus(id, newStatus, approvedBy: "seoyeon.l@kakaostyle.com", rejectionReason);
+        _data.UpdateStatus(id, newStatus, approvedBy: "nakyung.l@kakaostyle.com", rejectionReason);
 
         return RedirectToAction(nameof(Index), new { status, category, tier, q, page });
     }

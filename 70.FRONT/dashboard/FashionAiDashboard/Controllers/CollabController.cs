@@ -10,10 +10,10 @@ public class CollabController : Controller
     // 아직 없어 레이아웃 + 예시 1건만 제공 (React CollabHubView.jsx 그대로 이식)
     private static readonly Dictionary<string, CollabExample> Examples = new()
     {
-        ["mention"] = new("MENTION", "이서연 (MD)",
-            "\"@임재범 팀장님, [인생 슬랙스 Short-M] 직진배송 창고 입고 2일 지연되는데 메인 노출 일정 미룰까요?\" #생산지연",
+        ["mention"] = new("MENTION", "이나경 (MD)",
+            "\"@임현제 AI예측모델리드님, [인생 슬랙스 Short-M] 직진배송 창고 입고 2일 지연되는데 메인 노출 일정 미룰까요?\" #생산지연",
             "5분 전"),
-        ["task"] = new("TASK", "박지민 (Technical Designer)",
+        ["task"] = new("TASK", "최민 (데이터·인프라)",
             "샘플수정요청 — 인생 슬랙스 Short 핏 조정 (SLA 3일)", "대기 · D-2"),
         ["alert"] = new("ALERT_LOG", "재고 리오더 트리거",
             "TRD-CLR-01-COOL-002-S-CRM 재발주점 이하 — 긴급", "1시간 전"),

@@ -377,7 +377,7 @@ public class SampleDataService
                 Status = status,
                 CreatedAt = createdAt,
                 ResolvedAt = status == "Pending" ? null : createdAt.AddHours(resolutionHours),
-                ApprovedBy = status == "Approved" ? "seoyeon.l@kakaostyle.com" : null,
+                ApprovedBy = status == "Approved" ? "nakyung.l@kakaostyle.com" : null,
                 RejectionReason = status == "Rejected" ? "이번 시즌 컬러 단종 예정 — 재발주 보류" : null,
                 AvailableQty = s.AvailableQty,
                 ReservedQty = s.ReservedQty,
