@@ -44,7 +44,7 @@ SAP 등 기존 ERP는 그대로 두고 그 옆에 붙는 **AI 재고 리플레�
 | 40 | `40.PIPELINE` | 데이터·인프라 롤 — Data Factory, Dataverse 스키마·Security Role |
 | 50 | `50.DATABRICKS` | ML·모델링 롤 — Databricks 노트북, risk_score, 예측 결과 |
 | 60 | `60.RAG` | RAG·자동화 롤 — Power Automate, Teams Adaptive Card |
-| 70 | `70.FRONT` | 대시보드·프론트 롤 — React 대시보드 소스코드 |
+| 70 | `70.FRONT` | 대시보드·프론트 롤 — ASP.NET Core MVC/Razor Pages 대시보드 소스코드 (2026-09-10 React에서 전환 확정) |
 | 80 | `80.PRESENTATION` | 최종 발표 슬라이드·시연 스크립트 |
 | 90 | `90.모두의창업` | 모두의창업 2기 지원(학교 프로젝트와 별개 트랙) |
 
