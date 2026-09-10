@@ -1,0 +1,102 @@
+@using FashionAiDashboard.Models
+@{
+    ViewData["Title"] = "예측대조";
+    var series = (List<ForecastDay>)ViewBag.Series;
+    var categoryErrorRates = (List<CategoryErrorRate>)ViewBag.CategoryErrorRates;
+    var summary = (ForecastSummary)ViewBag.Summary;
+    var skuErrors = (List<SkuError>)ViewBag.SkuErrors;
+
+    var labels = System.Text.Json.JsonSerializer.Serialize(series.Select(d => d.Date));
+    var actuals = System.Text.Json.JsonSerializer.Serialize(series.Select(d => d.ActualTotal));
+    var predicteds = System.Text.Json.JsonSerializer.Serialize(series.Select(d => d.PredictedTotal));
+    var catLabels = System.Text.Json.JsonSerializer.Serialize(categoryErrorRates.Select(c => c.CategoryLabel));
+    var catMapes = System.Text.Json.JsonSerializer.Serialize(categoryErrorRates.Select(c => c.Mape));
+}
+
+<h1 class="page-title">예측대조</h1>
+
+<div class="stat-row">
+    <div class="stat-card">
+        <div class="stat-card-label">검증 기간</div>
+        <div class="stat-card-value" style="font-size:16px;">@summary.ValidationStart ~ @summary.ValidationEnd</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-label">전체 MAPE</div>
+        <div class="stat-card-value tone-@(summary.Mape > summary.TargetMape ? "bad" : "good")">
+            <span>@summary.Mape.ToString("F1")</span><span class="stat-card-unit">%</span>
+        </div>
+        <div class="stat-card-caption">목표 @summary.TargetMape.ToString("F1")% 이하</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-label">9월 held-out 대조</div>
+        <div class="stat-card-value" style="font-size:16px;">2026-08-20 cutoff 학습</div>
+    </div>
+</div>
+
+<div class="widget-card" style="margin-bottom:20px;">
+    <h2 class="widget-card-title">예측 vs 실측 (전체 카테고리 합계, 일별)</h2>
+    <canvas id="forecastLineChart" height="90"></canvas>
+</div>
+
+<div class="widget-card" style="margin-bottom:20px;">
+    <h2 class="widget-card-title">카테고리별 오차율 (MAPE)</h2>
+    <canvas id="categoryErrorChart" height="80"></canvas>
+</div>
+
+<div class="widget-card">
+    <h2 class="widget-card-title">SKU별 오차 상세 (risk_score 상위 16건)</h2>
+    <div style="overflow-x:auto;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>SKU</th>
+                    <th>스타일</th>
+                    <th>예측 합계</th>
+                    <th>실측 합계</th>
+                    <th>MAPE</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var e in skuErrors)
+                {
+                    <tr>
+                        <td>@e.SkuCode</td>
+                        <td>@e.StyleName</td>
+                        <td>@e.PredictedTotal</td>
+                        <td>@e.ActualTotal</td>
+                        <td>@e.Mape.ToString("F1")%</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script>
+        const accent = "#F33283";
+        const accentSoft = "#FFADD7";
+
+        new Chart(document.getElementById("forecastLineChart"), {
+            type: "line",
+            data: {
+                labels: @Html.Raw(labels),
+                datasets: [
+                    { label: "실측", data: @Html.Raw(actuals), borderColor: "#000000", backgroundColor: "#000000", tension: 0.25, pointRadius: 0 },
+                    { label: "예측", data: @Html.Raw(predicteds), borderColor: accent, backgroundColor: accentSoft, tension: 0.25, pointRadius: 0 },
+                ],
+            },
+            options: { responsive: true, scales: { x: { ticks: { maxTicksLimit: 8 } } } },
+        });
+
+        new Chart(document.getElementById("categoryErrorChart"), {
+            type: "bar",
+            data: {
+                labels: @Html.Raw(catLabels),
+                datasets: [{ label: "MAPE (%)", data: @Html.Raw(catMapes), backgroundColor: accent }],
+            },
+            options: { responsive: true, plugins: { legend: { display: false } } },
+        });
+    </script>
+}

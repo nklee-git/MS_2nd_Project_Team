@@ -1,0 +1,61 @@
+@{
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    string NavClass(string controllerName) => currentController.Equals(controllerName, StringComparison.OrdinalIgnoreCase) ? "nav-item active" : "nav-item";
+}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Fashion AI Agent</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <div class="sidebar-brand-badge">FA</div>
+                <div>
+                    <div class="sidebar-brand-name">Fashion AI Agent</div>
+                    <div class="sidebar-brand-sub">재고 리플레니시먼트</div>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a class="@NavClass("Home")" asp-controller="Home" asp-action="Index">홈</a>
+                <a class="@NavClass("Collab")" asp-controller="Collab" asp-action="Index">협업 허브</a>
+            </nav>
+
+            <div class="sidebar-nav-group">
+                <div class="sidebar-section-label">업무</div>
+                <nav class="sidebar-nav">
+                    <a class="@NavClass("Approvals")" asp-controller="Approvals" asp-action="Index">승인이력</a>
+                    <a class="@NavClass("Forecast")" asp-controller="Forecast" asp-action="Index">예측대조</a>
+                    <a class="@NavClass("Query")" asp-controller="Query" asp-action="Index">데이터 조회</a>
+                </nav>
+            </div>
+
+            <div class="sidebar-nav-group">
+                <div class="sidebar-section-label">기타</div>
+                <nav class="sidebar-nav">
+                    <a class="@NavClass("Changelog")" asp-controller="Changelog" asp-action="Index">버전 기록</a>
+                </nav>
+            </div>
+
+            <div class="sidebar-user">
+                <div class="sidebar-user-avatar">이서</div>
+                <div>
+                    <div class="sidebar-user-name">이서연</div>
+                    <div class="sidebar-user-title">MD</div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            @RenderBody()
+        </main>
+    </div>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

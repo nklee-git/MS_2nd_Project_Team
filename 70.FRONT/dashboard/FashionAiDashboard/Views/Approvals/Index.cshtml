@@ -1,0 +1,41 @@
+@model List<FashionAiDashboard.Models.ReorderRecommendation>
+@{
+    ViewData["Title"] = "승인이력";
+    string StatusLabel(string s) => s switch { "Pending" => "대기", "Approved" => "승인", "Rejected" => "반려", _ => s };
+}
+
+<h1 class="page-title">승인이력</h1>
+<div class="widget-card">
+    <p class="placeholder-note" style="margin-bottom:16px;">
+        risk_score 상위 20건 (샘플 데이터 — 30.DATA/32.nqnq_data 실 카탈로그 기반, 워크플로우 상태는 시뮬레이션). 필터·상세 드로어는 다음 단계.
+    </p>
+    <div style="overflow-x:auto;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>SKU</th>
+                    <th>스타일</th>
+                    <th>인기도</th>
+                    <th>risk_score</th>
+                    <th>예측수요</th>
+                    <th>추천발주량</th>
+                    <th>상태</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Model)
+                {
+                    <tr>
+                        <td>@r.SkuCode</td>
+                        <td>@r.StyleName</td>
+                        <td>@r.PopularityTier</td>
+                        <td>@r.RiskScore.ToString("F2")</td>
+                        <td>@r.PredictedDemand</td>
+                        <td>@r.RecommendedQty</td>
+                        <td><span class="status-badge status-@r.Status.ToLower()">@StatusLabel(r.Status)</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
