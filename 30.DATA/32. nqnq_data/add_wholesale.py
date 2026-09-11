@@ -4,6 +4,9 @@
 
 기존 nqnq.db / nqnq_scenario_miss.db에 이미 생성된 데이터 위에, 2026.06.01~TODAY 기간
 홀세일 파트너 8곳의 벌크 주문을 추가로 삽입한다. 기존 온라인/오프라인 데이터는 건드리지 않음.
+
+2026-09-11 수정: channel_id='WHOLESALE'이 channel 테이블에 등록된 적 없이 FK를 꺼서
+넣던 문제 발견 — channel 행을 방어적으로 채워넣고 FK를 다시 켜도록 변경.
 """
 import random
 import sqlite3
@@ -26,8 +29,14 @@ PARTNER_NAMES = [
 
 def add_wholesale(db_path: str):
     con = sqlite3.connect(db_path)
-    con.execute("PRAGMA foreign_keys=OFF")
     cur = con.cursor()
+
+    # channel_id='WHOLESALE'이 channel 테이블에 없으면 FK 위반 — generate_v4.py가
+    # 이미 이 행을 넣도록 갱신됐지만(2026-09-11), 그 갱신 이전에 만들어진 DB에도
+    # 안전하게 대비하기 위해 여기서도 방어적으로 채워넣음
+    cur.execute("INSERT OR IGNORE INTO channel VALUES (?, ?, ?, ?)",
+                ("WHOLESALE", "홀세일/입점", 0.0, "월 1회"))
+    con.execute("PRAGMA foreign_keys=ON")
 
     # 카운터: 기존 ID와 충돌 없게 별도 프리픽스 사용
     counter = _count(1)

@@ -261,6 +261,9 @@ cur.execute("INSERT INTO factory VALUES (?, ?, ?, ?, ?)",
 cur.executemany("INSERT INTO channel VALUES (?, ?, ?, ?)", [
     ("ZIGZAG", "지그재그(직진배송)", 0.15, "월 2회"),
     ("OFFLINE", "오프라인 쇼룸/팝업", 0.0, "-"),
+    # add_wholesale.py가 FK 체크 끄고 channel_id='WHOLESALE'로 주문을 넣던 문제 해결
+    # (42. Channel & Settlement Terms 기준: 플랫폼 수수료 없이 도매공급가로 직접 판매, 월 1회 정산)
+    ("WHOLESALE", "홀세일/입점", 0.0, "월 1회"),
 ])
 
 cur.executemany("INSERT INTO store VALUES (?, ?, ?, ?, ?)", [
