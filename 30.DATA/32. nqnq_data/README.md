@@ -2,6 +2,7 @@
 
 > ✅ **2026-09-10 재생성 완료**: 2026.09 체형태그·사이즈 개편(41 스타일/520 SKU) 반영판으로 `nqnq.db` 재생성 — 아래 결과 수치 전부 이번 재생성 기준으로 갱신. `csv_preview/`도 `export_csv_preview.py`로 동시에 재추출함. 개편 상세는 상위 볼트의 [[27. 체형태그·사이즈 확장 개편안 (블랙업 벤치마크)]], 필드 단위 설명은 [[71. Entity Definitions & Data Dictionary]] 참고.
 > ⚠️ 미달 시나리오(`generate_v4_miss.py`)·홀세일(`add_wholesale.py`)은 아직 새 카탈로그로 재실행 안 함 — 하단 두 절의 수치는 구 카탈로그(65/530) 기준 참고용.
+> ✅ **2026-09-11 추가 재생성**: `TODAY` 컷오프를 8/9 → **8/20**으로 수정([[16. PPT plan]] 설계 원리와 일치)하고 `add_wholesale.py` 재실행 — 아래 결과 수치는 이 재생성 기준으로 갱신. Dataverse 적재용으로 14개 엔터티 전체를 뽑은 `dataverse_import/`(신규 `export_for_dataverse.py`)도 추가됨.
 
 ## v3 대비 변경 배경
 매출 목표(Y3 1,000억) 대비 SKU가 243개뿐이라 SKU당 평균 연간 판매량이 약 7,600개로
@@ -22,26 +23,28 @@
 - `generate_v4_miss.py` — 미달 시나리오 생성 스크립트 (일별 타겟 직접 축소 방식)
 - `add_wholesale.py` — 홀세일 파일럿 데이터 추가 스크립트
 - `nqnq.db` / `nqnq_scenario_miss.db` — 생성된 SQLite DB (각 약 500MB대, `.gitignore` 처리됨)
-- `csv_preview/` — 주요 테이블 CSV 미리보기
-- `export_csv_preview.py` — `nqnq.db`에서 `csv_preview/*.csv`를 다시 뽑는 스크립트 (신규, 2026-09-10)
+- `csv_preview/` — 주요 테이블 CSV 미리보기(products/sku/inventory 전체 + orders/order_item/returns 500건 샘플)
+- `export_csv_preview.py` — `nqnq.db`에서 `csv_preview/*.csv`를 다시 뽑는 스크립트 (2026-09-10)
+- `dataverse_import/` — Dataverse 적재용 14개 엔터티 전체 CSV (신규, 2026-09-11)
+- `export_for_dataverse.py` — `nqnq.db`에서 `dataverse_import/*.csv`를 뽑는 스크립트 (신규, 2026-09-11) — category/product/sku/factory/channel/store/inventory/purchase_order/po_item은 전체, orders(2000건 샘플)·order_item·customer는 서로 참조무결성 맞춰서 추출, return_request/inventory_ledger는 독립 샘플
 
-## 생성 결과 규모 (베이스 시나리오, 2026-09-10 재생성)
+## 생성 결과 규모 (베이스 시나리오, 2026-09-11 재생성 — 컷오프 8/20)
 | 테이블 | 건수 |
 | --- | --- |
 | Category | 6 |
 | Product (베이직 25 + 트렌드 16 스타일) | 41 |
 | SKU (베이직 418 + 트렌드 102) | 520 |
 | Factory | 1 |
-| Channel | 2 |
+| Channel (ZIGZAG/OFFLINE/WHOLESALE) | 3 |
 | Store | 4 |
-| Customer | 851,814 |
-| Order | 1,207,907 |
-| OrderItem | 1,803,645 |
-| PurchaseOrder | 4,551 |
-| PoItem | 4,551 |
+| Customer | 876,584 |
+| Order | 1,243,392 |
+| OrderItem | 1,856,297 |
+| PurchaseOrder | 4,611 |
+| PoItem | 4,611 |
 | Inventory | 520 |
-| InventoryLedger | 2,061,758 |
-| ReturnRequest | 256,277 |
+| InventoryLedger | 2,127,852 |
+| ReturnRequest | 270,504 |
 
 ## 롱테일 검증 (인기도 티어별 SKU당 평균 연간 판매량, 재생성판)
 | 티어 | SKU 수 | 평균 판매량/SKU |

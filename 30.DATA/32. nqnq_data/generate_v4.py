@@ -30,7 +30,7 @@ from models import get_engine, init_db
 random.seed(42)
 np.random.seed(42)
 
-TODAY = date(2026, 8, 9)
+TODAY = date(2026, 8, 20)  # 2026-09-11 수정: 16.PPT plan "설계 원리"의 컷오프 확정값(8/20)과 맞춤 (기존 8/9는 이전 값)
 LAUNCH_DATE = date(2024, 3, 1)
 DB_PATH = "nqnq.db"
 
@@ -749,4 +749,4 @@ for q_start, q_end, target in QUARTERS:
           f"({actual_rev/scaled_target*100:.0f}%), 주문 {actual_orders:,}건")
 
 con.close()
-print("\n✅ nqnq.db 생성 완료 (v2)")
+print("\n[완료] nqnq.db 생성 완료 (v2)")
