@@ -1,6 +1,10 @@
 # 대용량 생성 데이터 (100MB+ GitHub 제한 초과) - generate_v4.py / generate_v4_miss.py / add_wholesale.py로 로컬 재생성
 30.DATA/32. nqnq_data/*.db
 
+# 샘플 없는 전체 CSV export (inventory_ledger.csv만 169MB로 단독 100MB 초과, 폴더 합계 397MB)
+# - export_full_for_dataverse.py로 로컬 재생성, 필요 시 OneDrive/Teams로 직접 공유
+30.DATA/32. nqnq_data/dataverse_import_full/
+
 # Obsidian 로컬 설정 (개인 UI 상태, 공유 불필요)
 .obsidian/workspace.json
 .obsidian/workspace-mobile.json
