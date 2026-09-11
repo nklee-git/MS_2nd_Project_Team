@@ -27,7 +27,9 @@ v4 대비 변경점 (2026-09-11, HUB/매장 재고 분리):
   - safety_stock/reorder_point는 위치별로 별도 계산하지 않고 SKU당 공통 공식값을
     모든 location 행에 동일하게 저장(단순화) — 실제 팩토리 재발주 판단은 HUB 행만 사용
   - pending_return_qty는 반품이 어디로 들어오든 전부 HUB에 귀속(단순화)
-  - HUB는 STORE 테이블에 없는 가상 위치라 location_id에 FK 제약을 걸지 않음
+  - HUB도 STORE 테이블에 실제 행(중앙창고)으로 넣어서 location_id를 정식 FK로 선언
+    (2026-09-12 수정 — 이전엔 "가상 위치라 FK 없음"이었으나, STORES 딕셔너리
+    기반 매장선택 로직과 분리해 store 테이블에만 HUB 행을 추가하는 쪽으로 정규화)
 """
 
 import random
@@ -281,6 +283,10 @@ cur.executemany("INSERT INTO store VALUES (?, ?, ?, ?, ?)", [
     (sid, s["type"], s["location"], s["open"].isoformat(), s["close"].isoformat() if s["close"] else None)
     for sid, s in STORES.items()
 ])
+# HUB는 오프라인 매장 시뮬레이션(STORES 딕셔너리) 대상이 아니라 재고 FK 앵커용 행 —
+# 실제 매장 선택 로직에 섞이지 않도록 STORES와 별개로 직접 삽입한다.
+cur.execute("INSERT INTO store VALUES (?, ?, ?, ?, ?)",
+            (HUB, "중앙창고", None, LAUNCH_DATE.isoformat(), None))
 
 TIER_WEIGHT = {"HERO": 3.0, "STEADY": 1.0, "NICHE": 0.3}
 
