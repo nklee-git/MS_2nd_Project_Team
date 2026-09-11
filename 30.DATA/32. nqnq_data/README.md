@@ -18,15 +18,16 @@
    재고 기반 지연 대신 **일별 주문 타겟을 직접 스케일링**하는 방식으로 전환 (더 확실하고 예측 가능)
 
 ## 파일 구성
-- `models.py` — SQLAlchemy 스키마 (popularity_tier 필드 포함)
-- `generate_v4.py` — 베이스 시나리오 생성 스크립트
-- `generate_v4_miss.py` — 미달 시나리오 생성 스크립트 (일별 타겟 직접 축소 방식)
+- `models.py` — SQLAlchemy 스키마 (v5: inventory/inventory_ledger에 location_id 복합키 추가, HUB+매장 재고 분리)
+- `generate_v5.py` — 베이스 시나리오 생성 스크립트 (현재 버전, HUB/매장 재고 분리 반영)
+- `generate_v4_miss.py` — 미달 시나리오 생성 스크립트 (일별 타겟 직접 축소 방식). v5 카탈로그로는 아직 포팅 안 됨 — 재실행 전까지는 구 카탈로그(65/530) 기준 결과만 유효
 - `add_wholesale.py` — 홀세일 파일럿 데이터 추가 스크립트
 - `nqnq.db` / `nqnq_scenario_miss.db` — 생성된 SQLite DB (각 약 500MB대, `.gitignore` 처리됨)
 - `csv_preview/` — 주요 테이블 CSV 미리보기(products/sku/inventory 전체 + orders/order_item/returns 500건 샘플)
-- `export_csv_preview.py` — `nqnq.db`에서 `csv_preview/*.csv`를 다시 뽑는 스크립트 (2026-09-10)
-- `dataverse_import/` — Dataverse 적재용 14개 엔터티 전체 CSV (신규, 2026-09-11)
-- `export_for_dataverse.py` — `nqnq.db`에서 `dataverse_import/*.csv`를 뽑는 스크립트 (신규, 2026-09-11) — category/product/sku/factory/channel/store/inventory/purchase_order/po_item은 전체, orders(2000건 샘플)·order_item·customer는 서로 참조무결성 맞춰서 추출, return_request/inventory_ledger는 독립 샘플
+- `export_csv_preview.py` — `nqnq.db`에서 `csv_preview/*.csv`를 다시 뽑는 스크립트
+- `full_export/` — 14개 엔터티 전체 CSV, 샘플 없이 원본 그대로 (orders/order_item/inventory_ledger는 각 70~180MB대)
+- `export_full_v5.py` — `nqnq.db`에서 `full_export/*.csv`를 뽑는 스크립트 (v5 스키마, location_id 포함 기준)
+- `archive/` — v4 이전 세대 생성 스크립트, v5 이전 스키마 기준 export 스크립트, 재생성 전 1회성 미리보기 산출물 등 더 이상 쓰지 않는 파일 보관 (상세는 `archive/README.md`)
 
 ## 생성 결과 규모 (베이스 시나리오, 2026-09-11 재생성 — 컷오프 8/20)
 | 테이블 | 건수 |
@@ -88,8 +89,8 @@
 ## 재실행 방법
 ```bash
 pip install sqlalchemy numpy --break-system-packages
-python3 generate_v4.py        # 베이스 시나리오
-python3 generate_v4_miss.py   # 미달 시나리오
+python3 generate_v5.py        # 베이스 시나리오
+python3 generate_v4_miss.py   # 미달 시나리오 (v5 카탈로그 미반영 상태)
 python3 add_wholesale.py      # 홀세일 파일럿 추가
 ```
 `DESIGNS_BY_CATEGORY`, `TIER_WEIGHT`에 디자인/티어를 추가/조정하면 전체 데이터가 다시 계산됩니다.
