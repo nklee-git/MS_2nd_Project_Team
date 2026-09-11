@@ -1,4 +1,0 @@
-﻿channel_id,name,commission_rate,settlement_cycle
-ZIGZAG,지그재그(직진배송),0.15,월 2회
-OFFLINE,오프라인 쇼룸/팝업,0.0,-
-WHOLESALE,홀세일/입점,0.0,월 1회

@@ -87,8 +87,13 @@ class PoItem(Base):
 
 
 class Inventory(Base):
+    """2026-09-11 v5 개편: HUB(중앙창고)+매장별 재고 분리를 위해 location_id를 PK에 추가.
+    location_id="HUB"는 STORE 테이블에 없는 가상 위치(온라인/홀세일 전용 중앙창고),
+    나머지는 STORE.store_id 값과 일치(단, FK로 강제하진 않음 — HUB가 STORE에 없어서
+    단일 FK 선언이 불가능하기 때문). 한 SKU가 여러 location에 각각 재고를 가짐."""
     __tablename__ = "inventory"
     sku_code = Column(String, ForeignKey("sku.sku_code"), primary_key=True)
+    location_id = Column(String, primary_key=True, default="HUB")  # "HUB" 또는 STORE.store_id
     available_qty = Column(Integer, default=0)
     reserved_qty = Column(Integer, default=0)
     defective_qty = Column(Integer, default=0)
@@ -102,6 +107,7 @@ class InventoryLedger(Base):
     __tablename__ = "inventory_ledger"
     ledger_id = Column(String, primary_key=True)
     sku_code = Column(String, ForeignKey("sku.sku_code"), nullable=False)
+    location_id = Column(String, nullable=False, default="HUB")  # 2026-09-11 v5 추가 — 어느 위치의 재고가 움직였는지
     movement_type = Column(String, nullable=False)      # 입고/판매출고/반품입고/불량처리/이관
     qty_change = Column(Integer, nullable=False)         # +/-
     reference_id = Column(String)                        # order_id 또는 po_id

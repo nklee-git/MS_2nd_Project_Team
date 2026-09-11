@@ -4,10 +4,12 @@ nqnq.db(2026.09 체형태그·사이즈 개편 재생성판)에서 csv_preview/*
 샘플(주문/반품 등)은 500건 랜덤 추출, 나머지(카탈로그/재고/집계)는 전체.
 """
 import csv
+import os
 import sqlite3
 import random
 
 random.seed(20260910)
+os.makedirs("csv_preview", exist_ok=True)
 
 con = sqlite3.connect("nqnq.db")
 con.row_factory = sqlite3.Row
@@ -36,11 +38,11 @@ write_csv("csv_preview/sku_master.csv",
           ["sku_code", "product_id", "size", "color_code", "price", "cost"],
           [tuple(r) for r in rows])
 
-# 3. inventory_snapshot.csv (전체)
-cur.execute("SELECT sku_code, available_qty, reserved_qty, defective_qty, pending_return_qty, safety_stock, reorder_point, last_updated FROM inventory")
+# 3. inventory_snapshot.csv (전체, v5: location_id별로 행이 여러 개 — sku당 HUB+매장별)
+cur.execute("SELECT sku_code, location_id, available_qty, reserved_qty, defective_qty, pending_return_qty, safety_stock, reorder_point, last_updated FROM inventory")
 rows = cur.fetchall()
 write_csv("csv_preview/inventory_snapshot.csv",
-          ["sku_code", "available_qty", "reserved_qty", "defective_qty", "pending_return_qty", "safety_stock", "reorder_point", "last_updated"],
+          ["sku_code", "location_id", "available_qty", "reserved_qty", "defective_qty", "pending_return_qty", "safety_stock", "reorder_point", "last_updated"],
           [tuple(r) for r in rows])
 
 # 4. orders_sample.csv (500건 랜덤)

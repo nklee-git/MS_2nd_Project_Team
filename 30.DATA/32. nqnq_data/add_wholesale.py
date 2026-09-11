@@ -15,7 +15,7 @@ from itertools import count as _count
 
 random.seed(7)
 
-TODAY = date(2026, 8, 9)
+TODAY = date(2026, 8, 20)  # 2026-09-11 수정: generate_v5.py 컷오프와 일치
 PILOT_START = date(2026, 6, 1)
 WHOLESALE_PRICE_RATIO = 0.45  # 정가 대비 도매공급가
 N_PARTNERS = 8
@@ -53,11 +53,13 @@ def add_wholesale(db_path: str):
         partner_ids.append(cid)
 
     # 2) 현재 재고 스냅샷에서 BASIC 라인 & 재고 여유 있는 SKU만 대상으로
+    # 2026-09-11 수정: inventory가 (sku_code, location_id) 복합키로 바뀌어서 location_id='HUB'로
+    # 좁히지 않으면 SKU당 여러 행(매장별)이 조인되어 중복 처리됨 — 홀세일은 HUB 재고에서만 나감
     cur.execute("""
         SELECT s.sku_code, s.price, i.available_qty
         FROM sku s
         JOIN product p ON s.product_id = p.product_id
-        JOIN inventory i ON i.sku_code = s.sku_code
+        JOIN inventory i ON i.sku_code = s.sku_code AND i.location_id = 'HUB'
         WHERE p.line_type = 'BASIC' AND i.available_qty > 100
     """)
     candidate_skus = cur.fetchall()  # (sku_code, price, available_qty)
@@ -86,7 +88,7 @@ def add_wholesale(db_path: str):
                 total_amount += unit_price * qty
                 items.append((sku_code, qty, unit_price))
                 inv_delta[sku_code] = already_used + qty
-                ledger_rows.append((gen_id("LED"), sku_code, "판매출고", -qty, order_id, order_dt.isoformat()))
+                ledger_rows.append((gen_id("LED"), sku_code, "HUB", "판매출고", -qty, order_id, order_dt.isoformat()))
 
             if not items:
                 d += timedelta(days=ORDER_INTERVAL_DAYS)
@@ -102,11 +104,11 @@ def add_wholesale(db_path: str):
 
     cur.executemany("INSERT INTO orders VALUES (?, ?, ?, ?, ?, ?, ?)", order_rows)
     cur.executemany("INSERT INTO order_item (order_id, sku_code, qty, unit_price) VALUES (?, ?, ?, ?)", order_item_rows)
-    cur.executemany("INSERT INTO inventory_ledger VALUES (?, ?, ?, ?, ?, ?)", ledger_rows)
+    cur.executemany("INSERT INTO inventory_ledger VALUES (?, ?, ?, ?, ?, ?, ?)", ledger_rows)
 
-    # 3) 재고 스냅샷 차감 반영
+    # 3) 재고 스냅샷 차감 반영 (HUB 행만 — 2026-09-11 수정)
     for sku_code, qty in inv_delta.items():
-        cur.execute("UPDATE inventory SET available_qty = available_qty - ? WHERE sku_code = ?", (qty, sku_code))
+        cur.execute("UPDATE inventory SET available_qty = available_qty - ? WHERE sku_code = ? AND location_id = 'HUB'", (qty, sku_code))
 
     con.commit()
     print(f"  홀세일 주문 {total_orders}건 추가, 매출 {total_revenue/1e8:.2f}억 (파트너 {N_PARTNERS}곳)")
